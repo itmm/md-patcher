@@ -243,7 +243,7 @@ Datei hält:
 
 ```c++
 // ...
-// next defined
+static Files pool;
 
 bool read_patch(Lines &lines) {
 	if (!next()) { return false; }
@@ -260,10 +260,6 @@ bool read_patch(Lines &lines) {
 }
 // ...
 ```
-
-Der Kommentar `// next defined` wurde weiter oben
-eingefügt, um einfach einen geeigneten Einfügepunkt
-für die Funktion in `main.cpp` zu finden.
 
 Es gibt folgende Fälle beim Code-Parsen zu unterscheiden:
 
@@ -310,7 +306,7 @@ bool read_patch(Lines &lines) {
 ```
 
 Bei der Wildcard-Erkennung wird ein `ident` ermittelt,
-welcher der Funktion in `mainc.pp` mitgegeben wird,
+welcher der Funktion in `main.cpp` mitgegeben wird,
 um ein vorzeitiges Ende des Kopierens zu erkennen:
 
 ```c++
@@ -338,7 +334,7 @@ folgende Funktion in `main.cpp`:
 static std::string line;
 
 bool line_is_wildcard(std::string &indent) {
-	auto idx = line.find("// ...");
+	auto idx = line.find("//" " ...");
 	if (idx == std::string::npos) {
 		return false;
 	}
@@ -353,7 +349,7 @@ werden:
 
 ```c++
 // ...
-// next defined
+static Files pool;
 
 bool do_wildcard(
 	const std::string &indent,

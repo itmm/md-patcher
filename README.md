@@ -91,6 +91,7 @@ int main() {
 			out << l << '\n';
 		}
 	}
+	// ...
 }
 ```
 
@@ -315,10 +316,10 @@ bool read_patch(Lines &lines) {
 	// ...
 	while (line != "```") {
 		// ...
-		// do wildcard
-		if (! do_wildcard(
-			indent, cur, lines.end()
-		)) { return false; }
+			// do wildcard
+			if (! do_wildcard(
+				indent, cur, lines.end()
+			)) { return false; }
 		// ...
 	}
 	// ...

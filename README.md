@@ -18,11 +18,17 @@ Im Moment lautet die Datei als `md-patcher`.
 Bevor ein relevantes Code-Fragment kommt, sollte die Datei
 also zum Beispiel mit `md-patcher.cpp` auf einen sinnvolleren
 Namen gesetzt werden.
+Das Programm prüft nicht, ob der Name sinnvoll ist.
+Zur Sicherheit sollte immer direkt vor einem Code-Block
+der Name der Datei angegeben werden.
+Dies erleichtert zusätzlich dem Leser,
+den Zusammenhang zu begreifen.
 
 Die Datei muss nicht auf einen Schlag angegeben werden.
 Es können Fragmente angegeben werden,
 die im Laufe des Dokumentes erweitert werden können.
-Ein Anfang von `md-patcher.cpp` könnte zum Beispiel so aussehen:
+Ein Anfang von `md-patcher.cpp` könnte zum Beispiel so
+aussehen:
 
 ```c++
 int main() {
@@ -31,6 +37,37 @@ int main() {
 	return 0;
 }
 ```
+
+Das Programm ist in C++ geschrieben.
+Genauer: dem C++17 Standard.
+Ich denke,
+diese Sprache erlaubt eine vernünftige Balance
+zwischen Kompaktheit und Ausführungsgeschwindigkeit.
+Im Gegensatz zu C gibt es schon mächtige Werkzeuge zum
+Umgang mit Containern.
+Und trotzdem ist das erzeugte Programm schnell.
+
+Das gerade angegebene Fragment definiert nur eine
+Funktion `main`.
+Dies ist die zentrale Funktion,
+die aufgerufen wird,
+wenn wir das Programm starten.
+Die Zeichen `//` leiten einen Kommentar ein.
+Alles was hinter den beiden Zeichen steht,
+wird vom Compiler ignoriert.
+
+Ein ausführbares Programm kann zum Beispiel unter Linux
+im Terminal mit
+
+```
+$ c++ md-patcher.cpp -o md-patcher
+```
+
+erzeugt werden werden.
+Wenn Ihr C++ Compiler anders heißt,
+muss der Aufruf entsprechend angepasst werden.
+Optimierungsoptionen sind in der Regel nicht notwendig.
+Auch das Programm ist sehr einfach und sollte schnell laufen.
 
 Zugegeben, das Programm macht noch nicht sehr viel.
 Aber wir können es jetzt Stück für Stück erweitern.
@@ -49,10 +86,35 @@ static Files pool;
 // ...
 ```
 
-Wichtig ist dabei die Kommentarzeile `// ...`.
-Genau nach dieser Zeile wird gesucht und das bisher
-bestehende Programm eingefügt.
-Der resultierende Code (dessen Ausgabe jetzt nach `/dev/null` geschrieben wird), ist also:
+Das Programm definiert,
+dass `Lines` eine Liste von Zeichenketten (Strings) ist
+und `Files` ein Verzeichnis von `Lines`,
+die über ihren Namen identifiziert werden.
+Mit den `#include`-Zeilen werden die Definitionen
+der verwendeten Klassen eingebunden.
+Es handelt sich dabei um Standard-Klassen,
+die mit dem C++-Compiler mitgeliefert werden.
+Das Schlüsselwort `static` bewirkt,
+dass die Variable nur in dieser Datei verwendet werden
+darf.
+Es hilft,
+den Namensraum sauber zu halten.
+
+Wichtig ist die Zeile mit dem Füll-Kommentar `// ...`.
+Genau diese Zeilen erkennt `md-patcher` und fügt das bisher
+bestehende Programm ein.
+`md-patcher` probiert,
+das bestehende Program mit dem Fragment
+zusammenzuführen.
+Dabei nutzt es zum einen identische Zeilen als
+Verankerung der beiden Teile miteinander.
+Zum anderen wird mit den Füll-Kommentaren angezeigt,
+an welcher Stelle im Fragment der bestehende Code
+eingesetzt werden kann.
+
+Der resultierende Code
+(dessen Ausgabe jetzt nach `/dev/null` geschrieben wird),
+ist also:
 
 ```c++
 #include <map>
@@ -69,7 +131,10 @@ int main() {
 }
 ```
 
-Nutzen wir diese Elemente,
+Gleich werden wir sehen,
+dass auch mehrere Füll-Kommentare in einem Fragment
+verwendet werden können.
+Nutzen wir Fragmente,
 um das Programm `md-patcher.cpp` vollständig zu beschreiben.
 
 ## Ausgabe
@@ -94,6 +159,17 @@ int main() {
 	// ...
 }
 ```
+
+Die äußere `for`-Schleife iteriert über alle Dateien,
+die in der Eingabe gefunden wurden.
+Für jede Datei wird ein Ausgabe-Strom geöffnet.
+In diesen werden alle Zeilen der Datei hineingeschrieben.
+Die Einträge der `pool`-Variablen sind Paare:
+das erste Teil-Element `first` enthält den Namen der Datei.
+Das zweite Teil-Element `second` die Liste der Zeilen.
+Mit dem `<<` Operator können Elemente in Ausgabe-Ströme
+geschrieben werden.
+Die Zeilen werden mit einem einfachen Linefeed abgeschlossen.
 
 Wenn die Füll-Kommentare mitten im Code stehen,
 werden so lange bestehende Zeichen verwendet,
@@ -134,7 +210,7 @@ um die nächste Zeile zu lesen:
 static std::string line;
 static int line_nr { 0 };
 
-bool next() {
+static bool next() {
 	return std::getline(std::cin, line) && ++line_nr;
 }
 
@@ -142,8 +218,18 @@ bool next() {
 // ...
 ```
 
-Damit kann das Lesen in der `main` Funktion in `md-patcher.cpp`
-beschrieben werden
+Auch Funktionen können als `static` markiert werden.
+Sie können dann auch nur innerhalb der aktuellen
+Übersetzungseinheit verwendet werden.
+
+Der zusätzliche Kommentar hilft uns später Funktionen
+zu definieren,
+die `next` aufrufen.
+Diese müssen nach der Funktion `next` definiert werden,
+oder es gibt einen Fehler bei der Übersetzung.
+
+Damit kann das Lesen in der `main` Funktion in
+`md-patcher.cpp` beschrieben werden
 (auch wenn es die aufgerufenen Funktionen noch nicht gibt):
 
 ```c++
@@ -179,7 +265,7 @@ ob ein String mit einer bestimmten Sequenz beginnt:
 // ...
 static std::string line;
 
-bool starts_with(
+static bool starts_with(
 	const std::string &base,
 	const std::string &prefix
 ) {
@@ -204,7 +290,7 @@ der aktuelle Dateiname:
 // ...
 static std::string line;
 
-void change_file(std::string &file) {
+static void change_file(std::string &file) {
 	const auto last_idx { line.rfind('`') };
 	if (last_idx != std::string::npos && last_idx > 0) {
 		const auto start_idx { line.rfind(
@@ -246,7 +332,7 @@ Datei hält:
 // ...
 static Files pool;
 
-bool read_patch(Lines &lines) {
+static inline bool read_patch(Lines &lines) {
 	if (!next()) { return false; }
 	Lines::iterator cur { lines.begin() };
 	std::string indent;
@@ -270,7 +356,7 @@ Es gibt folgende Fälle beim Code-Parsen zu unterscheiden:
 
 ```c++
 // ...
-bool read_patch(Lines &lines) {
+static inline bool read_patch(Lines &lines) {
 	// ...
 	while (line != "```") {
 		// handle code
@@ -295,7 +381,7 @@ Es muss also über den Index gegangen werden:
 
 ```c++
 // ...
-bool read_patch(Lines &lines) {
+static inline bool read_patch(Lines &lines) {
 	// ...
 	while (line != "```") {
 		// ...
@@ -316,7 +402,7 @@ um ein vorzeitiges Ende des Kopierens zu erkennen:
 
 ```c++
 // ...
-bool read_patch(Lines &lines) {
+static inline bool read_patch(Lines &lines) {
 	// ...
 	while (line != "```") {
 		// ...
@@ -338,7 +424,9 @@ folgende Funktion in `md-patcher.cpp`:
 // ...
 static std::string line;
 
-bool line_is_wildcard(std::string &indent) {
+static inline bool line_is_wildcard(
+	std::string &indent
+) {
 	auto idx = line.find("//" " ...");
 	if (idx == std::string::npos) {
 		return false;
@@ -356,7 +444,7 @@ werden:
 // ...
 static Files pool;
 
-bool do_wildcard(
+static inline bool do_wildcard(
 	const std::string &indent,
 	Lines::iterator &cur,
 	const Lines::const_iterator &end

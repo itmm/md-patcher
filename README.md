@@ -16,13 +16,13 @@ Jedes Inline-Codefragment ändert den Namen der aktuellen
 Datei.
 Im Moment lautet die Datei als `md-patcher`.
 Bevor ein relevantes Code-Fragment kommt, sollte die Datei
-also zum Beispiel mit `main.cpp` auf einen sinnvolleren
+also zum Beispiel mit `md-patcher.cpp` auf einen sinnvolleren
 Namen gesetzt werden.
 
 Die Datei muss nicht auf einen Schlag angegeben werden.
 Es können Fragmente angegeben werden,
 die im Laufe des Dokumentes erweitert werden können.
-Ein Anfang von `main.cpp` könnte zum Beispiel so aussehen:
+Ein Anfang von `md-patcher.cpp` könnte zum Beispiel so aussehen:
 
 ```c++
 int main() {
@@ -36,7 +36,7 @@ Zugegeben, das Programm macht noch nicht sehr viel.
 Aber wir können es jetzt Stück für Stück erweitern.
 Um zum Beispiel eine Struktur zu haben,
 in der die Dateien zwischengespeichert werden,
-können wir `main.cpp` wie folgt erweitern:
+können wir `md-patcher.cpp` wie folgt erweitern:
 
 ```c++
 #include <map>
@@ -70,7 +70,7 @@ int main() {
 ```
 
 Nutzen wir diese Elemente,
-um das Programm `main.cpp` vollständig zu beschreiben.
+um das Programm `md-patcher.cpp` vollständig zu beschreiben.
 
 ## Ausgabe
 
@@ -123,7 +123,7 @@ Inklusive der gemeinsamen Zeile
 Um das Programm einfach zu halten,
 wird die aktuell gelesene Zeile und ihre Zeilennummer
 in globalen Variablen abgelegt.
-Zusätzlich gibt es in `main.cpp` eine Funktion,
+Zusätzlich gibt es in `md-patcher.cpp` eine Funktion,
 um die nächste Zeile zu lesen:
 
 ```c++
@@ -142,7 +142,7 @@ bool next() {
 // ...
 ```
 
-Damit kann das Lesen in der `main` Funktion in `main.cpp`
+Damit kann das Lesen in der `main` Funktion in `md-patcher.cpp`
 beschrieben werden
 (auch wenn es die aufgerufenen Funktionen noch nicht gibt):
 
@@ -172,7 +172,7 @@ Mehrere Markdown-Dateien
 können gemeinsam verarbeitet werden,
 wenn sie vorher mit `cat` zusammengefasst werden.
 
-Die Funktion `starts_with` in `main.cpp` prüft einfach,
+Die Funktion `starts_with` in `md-patcher.cpp` prüft einfach,
 ob ein String mit einer bestimmten Sequenz beginnt:
 
 ```c++
@@ -237,7 +237,7 @@ Für eine andere Programmiersprache `xtx` habe ich nach
 einer einfacheren Lösung gesucht.
 Und `md-patcher` ist das Ergebnis.
 
-Die Funktion `read_patch` in `main.cpp` liest das
+Die Funktion `read_patch` in `md-patcher.cpp` liest das
 Fragment Zeile für Zeile,
 während es einen Iterator auf die bisherigen Zeilen der
 Datei hält:
@@ -256,6 +256,10 @@ bool read_patch(Lines &lines) {
 			std::cerr << "end of file in code block\n";
 			return false;
 		}
+	}
+	if (cur != lines.end()) {
+		std::cerr << "incomplete patch at line" <<
+			line_nr << '\n';
 	}
 	return next();
 }
@@ -307,7 +311,7 @@ bool read_patch(Lines &lines) {
 ```
 
 Bei der Wildcard-Erkennung wird ein `ident` ermittelt,
-welcher der Funktion in `main.cpp` mitgegeben wird,
+welcher der Funktion in `md-patcher.cpp` mitgegeben wird,
 um ein vorzeitiges Ende des Kopierens zu erkennen:
 
 ```c++
@@ -328,7 +332,7 @@ bool read_patch(Lines &lines) {
 ```
 
 Ob der Füll-Kommentar vorhanden ist, ermittelt die
-folgende Funktion in `main.cpp`:
+folgende Funktion in `md-patcher.cpp`:
 
 ```c++
 // ...

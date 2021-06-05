@@ -3,4 +3,4 @@ project(md_patcher)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(md_patcher main.cpp)
+add_executable(md_patcher md-patcher.cpp)

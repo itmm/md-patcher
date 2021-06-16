@@ -206,12 +206,18 @@ um die nächste Zeile zu lesen:
 // ...
 #include <string>
 #include <iostream>
+#include "line-reader.h"
 
 static std::string line;
-static int line_nr { 0 };
+static Line_Reader reader { "", std::cin };
 
 static bool next() {
-	return std::getline(std::cin, line) && ++line_nr;
+	return reader.next(line);
+}
+
+std::ostream &err_pos() {
+	return std::cerr << reader.pos().file_name() <<
+		':' << reader.pos().line() << ' ';
 }
 
 // next defined
@@ -339,13 +345,12 @@ static inline bool read_patch(Lines &lines) {
 	while (line != "```") {
 		// handle code
 		if (! next()) {
-			std::cerr << "end of file in code block\n";
+			err_pos() << "end of file in code block\n";
 			return false;
 		}
 	}
 	if (cur != lines.end()) {
-		std::cerr << "incomplete patch at line" <<
-			line_nr << '\n';
+		err_pos() << "incomplete patch\n";
 	}
 	return next();
 }
@@ -450,7 +455,7 @@ static inline bool do_wildcard(
 	const Lines::const_iterator &end
 ) {
 	if (! next()) {
-		std::cerr << "end of file after wildcard\n";
+		err_pos() << "end of file after wildcard\n";
 		return false;
 	}
 	while (cur != end &&

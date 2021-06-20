@@ -209,10 +209,24 @@ um die nächste Zeile zu lesen:
 #include "line-reader.h"
 
 static std::string line;
+static File_Position line_pos { "", 0 };
 static Line_Reader reader { "", std::cin };
 
 static bool next() {
-	return reader.next(line);
+	for (;;) {
+		if (! reader.next(line)) {
+			return false;
+		}
+		File_Position pos {
+			line_pos.parse_line_macro(line)
+		};
+		if (pos) {
+			line_pos = pos;
+			continue;
+		}
+		++line_pos;
+		return true;
+	}
 }
 
 std::ostream &err_pos() {

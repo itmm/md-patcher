@@ -87,6 +87,13 @@ static inline bool do_wildcard(
 static inline bool read_patch(Lines &lines) {
 	if (!next()) { return false; }
 	Lines::iterator cur { lines.begin() };
+	File_Position pos { "", 0 };
+	while (cur != lines.end()) {
+		File_Position p { pos.parse_line_macro(*cur) };
+		if (! p) { break; }
+		pos = p;
+		++cur;
+	}
 	std::string indent;
 	while (line != "```") {
 		// handle code
@@ -98,6 +105,7 @@ static inline bool read_patch(Lines &lines) {
 			continue;
 		} else if (cur != lines.end() && line == *cur) {
 			++cur;
+			++pos;
 		} else {
 			// insert line
 			auto pos = cur - lines.begin();

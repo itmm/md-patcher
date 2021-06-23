@@ -1,3 +1,6 @@
 [submodule "line-reader"]
 	path = line-reader
 	url = https://github.com/itmm/line-reader.git
+[submodule "lazy-write"]
+	path = lazy-write
+	url = https://github.com/itmm/lazy-write.git

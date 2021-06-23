@@ -145,15 +145,15 @@ Es werden einfach alle Zeilen in die entsprechenden
 Dateien geschrieben:
 
 ```c++
-#include <fstream>
+#include "lazy-write.h"
 // ...
 int main() {
 	// ...
 	// write output
 	for (const auto &f: pool) {
-		std::ofstream out(f.first.c_str());
+		Lazy_Write out(f.first);
 		for (const auto &l: f.second) {
-			out << l << '\n';
+			out << l; out.put('\n');
 		}
 	}
 	// ...

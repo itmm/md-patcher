@@ -11,7 +11,7 @@
 #line 148
 #line 148
 #line 148
-#include <fstream>
+#include "lazy-write.h"
 #line 79
 #include <map>
 #include <vector>
@@ -209,9 +209,9 @@ int main() {
 	// write output
 #line 153
 	for (const auto &f: pool) {
-		std::ofstream out(f.first.c_str());
+		Lazy_Write out(f.first);
 		for (const auto &l: f.second) {
-			out << l << '\n';
+			out << l; out.put('\n');
 		}
 	}
 #line 89

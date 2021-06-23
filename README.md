@@ -209,24 +209,10 @@ um die nächste Zeile zu lesen:
 #include "line-reader.h"
 
 static std::string line;
-static File_Position line_pos { "", 0 };
 static Line_Reader reader { "", std::cin };
 
 static bool next() {
-	for (;;) {
-		if (! reader.next(line)) {
-			return false;
-		}
-		File_Position pos {
-			line_pos.parse_line_macro(line)
-		};
-		if (pos) {
-			line_pos = pos;
-			continue;
-		}
-		++line_pos;
-		return true;
-	}
+	return reader.next(line);
 }
 
 std::ostream &err_pos() {
@@ -289,6 +275,7 @@ static bool starts_with(
 	const std::string &base,
 	const std::string &prefix
 ) {
+	if (prefix.empty()) { return true; }
 	return base.size() >= prefix.size() &&
 		base.substr(0, prefix.size()) == prefix;
 }
@@ -352,16 +339,22 @@ Datei hält:
 // ...
 static Files pool;
 
+static Lines::iterator insert_before(
+	const std::string &ins, Lines::iterator cur,
+	Lines &lines
+) {
+	auto p { cur - lines.begin() };
+	lines.insert(cur, ins);
+	return lines.begin() + (p + 1);
+}
+
+// patch helpers
+
 static inline bool read_patch(Lines &lines) {
-	if (!next()) { return false; }
+	if (! next()) { return false; }
 	Lines::iterator cur { lines.begin() };
 	File_Position pos { "", 0 };
-	while (cur != lines.end()) {
-		File_Position p { pos.parse_line_macro(*cur) };
-		if (! p) { break; }
-		pos = p;
-		++cur;
-	}
+	File_Position old_pos { pos };
 	std::string indent;
 	while (line != "```") {
 		// handle code
@@ -372,6 +365,7 @@ static inline bool read_patch(Lines &lines) {
 	}
 	if (cur != lines.end()) {
 		err_pos() << "incomplete patch\n";
+		return false;
 	}
 	return next();
 }
@@ -386,12 +380,26 @@ static inline bool read_patch(Lines &lines) {
 	// ...
 	while (line != "```") {
 		// handle code
+		if (cur != lines.end()) {
+			File_Position xp { old_pos.parse_line_macro(*cur) };
+			if (xp) {
+				old_pos = xp;
+				++cur;
+				continue;
+			}
+		}
 		if (line_is_wildcard(indent)) {
 			// do wildcard
 			continue;
 		} else if (cur != lines.end() && line == *cur) {
+			std::string line_macro {
+				pos.line_macro(old_pos)
+			};
+			if (! line_macro.empty()) {
+				cur = insert_before(line_macro, cur, lines);
+			}
 			++cur;
-			++pos;
+			++pos; old_pos = pos;
 		} else {
 			// insert line
 		}
@@ -413,9 +421,14 @@ static inline bool read_patch(Lines &lines) {
 	while (line != "```") {
 		// ...
 			// insert line
-			auto pos = cur - lines.begin();
-			lines.insert(cur, line);
-			cur = lines.begin() + (pos + 1);
+			std::string line_macro {
+				pos.line_macro(reader.pos())
+			};
+			if (! line_macro.empty()) {
+				cur = insert_before(line_macro, cur, lines);
+			}
+			cur = insert_before(line, cur, lines);
+			++pos;
 		// ...
 	}
 	// ...
@@ -435,7 +448,7 @@ static inline bool read_patch(Lines &lines) {
 		// ...
 			// do wildcard
 			if (! do_wildcard(
-				indent, cur, lines.end()
+				indent, lines, cur, pos, old_pos
 			)) { return false; }
 		// ...
 	}
@@ -469,21 +482,37 @@ werden:
 
 ```c++
 // ...
-static Files pool;
+// patch helpers
 
 static inline bool do_wildcard(
 	const std::string &indent,
+	Lines &lines,
 	Lines::iterator &cur,
-	const Lines::const_iterator &end
+	File_Position &pos,
+	File_Position &old_pos
 ) {
 	if (! next()) {
 		err_pos() << "end of file after wildcard\n";
 		return false;
 	}
-	while (cur != end &&
-		(line == "```" || *cur != line) &&
-		starts_with(*cur, indent)
-	) { ++cur; }
+	while (cur != lines.end()) { 
+		std::string macro {
+			pos.line_macro(old_pos)
+		};
+		if (! macro.empty()) {
+			cur = insert_before(macro, cur, lines);
+		}
+		File_Position fp { pos.parse_line_macro(*cur) };
+		if (fp) {
+			++cur;
+			continue;
+		}
+		if (! starts_with(*cur, indent)) { break; }
+		if (line != "```" && *cur == line) { break; }
+		++cur;
+		++pos;
+		old_pos = pos;
+	}
 	return true;
 }
 // ...

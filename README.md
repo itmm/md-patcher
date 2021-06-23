@@ -30,6 +30,10 @@ die im Laufe des Dokumentes erweitert werden können.
 Ein Anfang von `md-patcher.cpp` könnte zum Beispiel so
 aussehen:
 
+```
+#line 34 "README.md"
+```
+
 ```c++
 int main() {
 	// parse input

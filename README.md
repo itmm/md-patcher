@@ -267,14 +267,36 @@ Dateien geschrieben:
 
 ```c++
 #include "lazy-write.h"
+template <typename S>
+void put_num(S &s, int num) {
+	if (num) {
+		put_num(s, num / 10);
+		s.put((num % 10) + '0');
+	}
+}
 // ...
 int main(int argc, const char *argv[]) {
 	// ...
 	// write output
 	for (const auto &f: pool) {
 		Lazy_Write out(f.first);
+		std::string name { f.first };
+		int line { 1 };
 		for (const auto &l: f.second) {
-			// TODO: add #line statements
+			if (line != l.number() || name != l.file()) {
+				out << "#line ";
+				put_num(out, l.number());
+				if (name != l.file()) {
+					out.put(' ');
+					out.put('"');
+					out << l.file();
+					out.put('"');
+				}
+				out.put('\n');
+				line = l.number();
+				name = l.file();
+			}
+			++line;
 			out << l.value(); out.put('\n');
 		}
 	}
@@ -474,7 +496,7 @@ static IT insert_before(
 	File &file
 ) {
 	auto p { cur - file.begin() };
-	file.insert(cur, Line { ins, reader.pos().file_name(), reader.pos().line() });
+	file.insert(cur, Line { ins, reader.pos().file_name(), reader.pos().line() - 1 });
 	return file.begin() + (p + 1);
 }
 
@@ -522,12 +544,6 @@ static inline bool read_patch(File &file) {
 			// do wildcard
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
-			std::string line_macro {
-				pos.line_macro(old_pos)
-			};
-			if (! line_macro.empty()) {
-				cur = insert_before(line_macro, cur, file);
-			}
 			++cur;
 			++pos; old_pos = pos;
 		} else {
@@ -551,12 +567,6 @@ static inline bool read_patch(File &file) {
 	while (line != "```") {
 		// ...
 			// insert line
-			std::string line_macro {
-				pos.line_macro(reader.pos())
-			};
-			if (! line_macro.empty()) {
-				cur = insert_before(line_macro, cur, file);
-			}
 			cur = insert_before(line, cur, file);
 			++pos;
 		// ...
@@ -627,12 +637,6 @@ static inline bool do_wildcard(
 		return false;
 	}
 	while (cur != file.end()) { 
-		std::string macro {
-			pos.line_macro(old_pos)
-		};
-		if (! macro.empty()) {
-			cur = insert_before(macro, cur, file);
-		}
 		File_Position fp { pos.parse_line_macro(cur->value()) };
 		if (fp) {
 			++cur;

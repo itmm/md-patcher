@@ -214,16 +214,12 @@ class File {
 		auto begin() const { return lines_.begin(); }
 		auto end() { return lines_.end(); }
 		auto end() const { return lines_.end(); }
-		auto insert(std::vector<Line>::iterator pos, const Line &line) {
-			return lines_.insert(pos, line);
-		}	
 };
 // ...
 ```
 
-Um zum Beispiel eine Struktur zu haben,
-in der die Dateien zwischengespeichert werden,
-können wir `md-patcher.cpp` wie folgt erweitern:
+Damit können wir einen Pool an Dateien offen halten,
+deren Inhalt generiert wird:
 
 ```c++
 // ...
@@ -232,31 +228,9 @@ class File {
 };
 #include <map>
 
-using Lines = std::vector<std::string>;
-using Files = std::map<std::string, File>;
-static Files pool;
+static std::map<std::string, File> pool;
 // ...
 ```
-
-Das Programm definiert,
-dass `Lines` eine Liste von Zeichenketten (Strings) ist
-und `Files` ein Verzeichnis von `Lines`,
-die über ihren Namen identifiziert werden.
-Mit den `#include`-Zeilen werden die Definitionen
-der verwendeten Klassen eingebunden.
-Es handelt sich dabei um Standard-Klassen,
-die mit dem C++-Compiler mitgeliefert werden.
-Das Schlüsselwort `static` bewirkt,
-dass die Variable nur in dieser Datei verwendet werden
-darf.
-Es hilft,
-den Namensraum sauber zu halten.
-
-Gleich werden wir sehen,
-dass auch mehrere Füll-Kommentare in einem Fragment
-verwendet werden können.
-Nutzen wir Fragmente,
-um das Programm `md-patcher.cpp` vollständig zu beschreiben.
 
 ## Ausgabe
 
@@ -327,7 +301,7 @@ erneut eingefügt.
 
 Wichtig ist hierbei zu beachten,
 dass `md-patcher` keine eingefügten Zeilen erkennen kann,
-die nach einem Füll-Komentar vor einer gemeinsamen
+die nach einem Füll-Kommentar vor einer gemeinsamen
 Zeile kommen.
 Da keine bestehende Zeile mit der neuen Zeile
 übereinstimmt,
@@ -384,6 +358,19 @@ Damit kann das Lesen in der `main` Funktion in
 
 ```c++
 // ...
+class File {
+	// ...
+	public:
+		auto insert(std::vector<Line>::iterator pos, const Line &line) {
+			return lines_.insert(pos, line);
+		}	
+		// ...
+};
+// ...
+```
+
+```c++
+// ...
 int main(int argc, const char *argv[]) {
 	// ...
 	// parse input
@@ -434,7 +421,7 @@ static bool starts_with(
 
 Hier sieht man wieder, wie eine bestehende Zeile
 herangezogen wird,
-um einen geeigneten EinfÜgepunkt der Funktion zu finden.
+um einen geeigneten Einfügepunkt der Funktion zu finden.
 
 Ebenfalls recht einfach kann ein neuer
 Dateiname ermittelt werden.
@@ -456,10 +443,12 @@ static void change_file(std::string &file) {
 		if (start_idx != std::string::npos &&
 			start_idx < last_idx
 		) {
-			// TODO: only change if contains '.' or '/'
-			file = line.substr(
+			auto got { line.substr(
 				start_idx, last_idx - start_idx
-			);
+			) };
+			if (got.find('.') != std::string::npos || got.find('/') != std::string::npos) {
+				file = got;
+			}
 		}
 	}
 }
@@ -488,7 +477,7 @@ Datei hält:
 
 ```c++
 // ...
-static Files pool;
+static std::map<std::string, File> pool;
 
 template<typename IT>
 static IT insert_before(
@@ -496,7 +485,9 @@ static IT insert_before(
 	File &file
 ) {
 	auto p { cur - file.begin() };
-	file.insert(cur, Line { ins, reader.pos().file_name(), reader.pos().line() - 1 });
+	file.insert(cur, Line {
+		ins, reader.pos().file_name(), reader.pos().line() - 1
+	});
 	return file.begin() + (p + 1);
 }
 
@@ -505,8 +496,6 @@ static IT insert_before(
 static inline bool read_patch(File &file) {
 	if (! next()) { return false; }
 	auto cur { file.begin() };
-	File_Position pos { "", 0 };
-	File_Position old_pos { pos };
 	std::string indent;
 	while (line != "```") {
 		// handle code
@@ -532,20 +521,11 @@ static inline bool read_patch(File &file) {
 	// ...
 	while (line != "```") {
 		// handle code
-		if (cur != file.end()) {
-			File_Position xp { old_pos.parse_line_macro(cur->value()) };
-			if (xp) {
-				old_pos = xp;
-				++cur;
-				continue;
-			}
-		}
 		if (line_is_wildcard(indent)) {
 			// do wildcard
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
 			++cur;
-			++pos; old_pos = pos;
 		} else {
 			// insert line
 		}
@@ -568,7 +548,6 @@ static inline bool read_patch(File &file) {
 		// ...
 			// insert line
 			cur = insert_before(line, cur, file);
-			++pos;
 		// ...
 	}
 	// ...
@@ -587,9 +566,9 @@ static inline bool read_patch(File &file) {
 	while (line != "```") {
 		// ...
 			// do wildcard
-			if (! do_wildcard(
-				indent, file, cur, pos, old_pos
-			)) { return false; }
+			if (! do_wildcard(indent, file, cur)) {
+				return false;
+			}
 		// ...
 	}
 	// ...
@@ -628,25 +607,16 @@ template<typename IT>
 static inline bool do_wildcard(
 	const std::string &indent,
 	File &file,
-	IT &cur,
-	File_Position &pos,
-	File_Position &old_pos
+	IT &cur
 ) {
 	if (! next()) {
 		err_pos() << "end of file after wildcard\n";
 		return false;
 	}
 	while (cur != file.end()) { 
-		File_Position fp { pos.parse_line_macro(cur->value()) };
-		if (fp) {
-			++cur;
-			continue;
-		}
 		if (! starts_with(cur->value(), indent)) { break; }
 		if (line != "```" && cur->value() == line) { break; }
 		++cur;
-		++pos;
-		old_pos = pos;
 	}
 	return true;
 }

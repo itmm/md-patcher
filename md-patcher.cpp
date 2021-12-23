@@ -1,34 +1,38 @@
-#line 34
-#line 79
-#line 148
-#line 148
-#line 148
-#line 148
-#line 148
-#line 148
-#line 148
-#line 148
-#line 148
-#line 148
-#line 148
+#line 35 "README.md"
+#line 92 "README.md"
+#line 151 "README.md"
+#line 151 "README.md"
+#line 151 "README.md"
+#line 151 "README.md"
+#line 151 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
+#line 267 "README.md"
 #include "lazy-write.h"
-#line 79
-#include <map>
-#include <vector>
+#line 151
+#include <cassert>
+#line 92
 #include <string>
-#line 208
+#line 168
+#line 327
 #include <iostream>
 #include "line-reader.h"
-#line 152
 
-#line 211
 static std::string line;
-#line 273
-#line 273
-#line 273
+#line 393
+#line 393
+#line 393
 
-#line 300
-#line 467
+#line 420
+#line 587
 static inline bool line_is_wildcard(
 	std::string &indent
 ) {
@@ -39,7 +43,7 @@ static inline bool line_is_wildcard(
 	indent = line.substr(0, idx);
 	return true;
 }
-#line 300
+#line 420
 static void change_file(std::string &file) {
 	const auto last_idx { line.rfind('`') };
 	if (last_idx != std::string::npos && last_idx > 0) {
@@ -55,7 +59,7 @@ static void change_file(std::string &file) {
 		}
 	}
 }
-#line 274
+#line 394
 static bool starts_with(
 	const std::string &base,
 	const std::string &prefix
@@ -64,7 +68,7 @@ static bool starts_with(
 	return base.size() >= prefix.size() &&
 		base.substr(0, prefix.size()) == prefix;
 }
-#line 156
+#line 274
 static Line_Reader reader { "", std::cin };
 
 static bool next() {
@@ -77,12 +81,45 @@ std::ostream &err_pos() {
 }
 
 // next defined
+#line 168
+class Line {
+		const std::string value_;
+		const std::string file_;
+		const int number_;
+	public:
+		Line(
+			const std::string &value, const std::string &file,
+			int number
+		):
+			value_ { value }, file_ { file }, number_ { number }
+		{ }
+		const std::string &value() const { return value_; }
+		const std::string &file() const { return file_; }
+		int number() const { return number_; }
+};
 #line 153
+#line 207
+#include <vector>
+class File {
+		std::string name_;
+		std::vector<Line> lines_;
+	public:
+		File(const std::string &name): name_ { name } { }
+		const std::string &name() const { return name_; }
+		auto begin() { return lines_.begin(); }
+		auto begin() const { return lines_.begin(); }
+		auto end() { return lines_.end(); }
+		auto end() const { return lines_.end(); }
+};
+#line 153
+#line 231
+#include <map>
+
 using Lines = std::vector<std::string>;
 using Files = std::map<std::string, Lines>;
 static Files pool;
-#line 34
-#line 341
+#line 153
+#line 461
 
 static Lines::iterator insert_before(
 	const std::string &ins, Lines::iterator cur,
@@ -95,7 +132,7 @@ static Lines::iterator insert_before(
 
 // patch helpers
 
-#line 487
+#line 607
 static inline bool do_wildcard(
 	const std::string &indent,
 	Lines &lines,
@@ -127,7 +164,7 @@ static inline bool do_wildcard(
 	}
 	return true;
 }
-#line 217
+#line 364
 static inline bool read_patch(Lines &lines) {
 	if (! next()) { return false; }
 	Lines::iterator cur { lines.begin() };
@@ -136,7 +173,7 @@ static inline bool read_patch(Lines &lines) {
 	std::string indent;
 	while (line != "```") {
 		// handle code
-#line 383
+#line 503
 		if (cur != lines.end()) {
 			File_Position xp { old_pos.parse_line_macro(*cur) };
 			if (xp) {
@@ -147,11 +184,11 @@ static inline bool read_patch(Lines &lines) {
 		}
 		if (line_is_wildcard(indent)) {
 			// do wildcard
-#line 450
+#line 570
 			if (! do_wildcard(
 				indent, lines, cur, pos, old_pos
 			)) { return false; }
-#line 225
+#line 372
 			continue;
 		} else if (cur != lines.end() && line == *cur) {
 			std::string line_macro {
@@ -164,7 +201,7 @@ static inline bool read_patch(Lines &lines) {
 			++pos; old_pos = pos;
 		} else {
 			// insert line
-#line 424
+#line 544
 			std::string line_macro {
 				pos.line_macro(reader.pos())
 			};
@@ -173,9 +210,9 @@ static inline bool read_patch(Lines &lines) {
 			}
 			cur = insert_before(line, cur, lines);
 			++pos;
-#line 237
+#line 384
 		}
-#line 215
+#line 362
 		if (! next()) {
 			err_pos() << "end of file in code block\n";
 			return false;
@@ -187,13 +224,40 @@ static inline bool read_patch(Lines &lines) {
 	}
 	return next();
 }
-#line 34
-#line 34
-#line 34
-#line 34
-int main() {
+#line 153
+#line 153
+#line 153
+#line 153
+static inline void run_tests() {
+	// unit-tests
+#line 154
+#line 191
+	{ // check empty file
+		File f { "out.cpp" };
+		assert(f.name() == "out.cpp");
+		assert(f.begin() == f.end());
+	}
+#line 154
+	{ // check Line attributes
+		const Line line { "some-line", "some-file", 42 };
+		assert(line.value() == "some-line");
+		assert(line.file() == "some-file");
+		assert(line.number() == 42);
+	}
+#line 95
+}
+#line 35
+int main(int argc, const char *argv[]) {
+#line 97
+#line 97
+#line 97
+	run_tests();
+	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
+		return 0;
+	}
+#line 36
 	// parse input
-#line 245
+#line 365
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {
 		if (starts_with(line, "```") &&
@@ -205,15 +269,15 @@ int main() {
 			if (! next()) { break; }
 		}
 	}
-#line 173
+#line 102
 	// write output
-#line 153
+#line 272
 	for (const auto &f: pool) {
 		Lazy_Write out(f.first);
 		for (const auto &l: f.second) {
 			out << l; out.put('\n');
 		}
 	}
-#line 89
+#line 103
 	return 0;
 }

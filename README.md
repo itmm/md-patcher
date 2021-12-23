@@ -30,12 +30,8 @@ die im Laufe des Dokumentes erweitert werden können.
 Ein Anfang von `md-patcher.cpp` könnte zum Beispiel so
 aussehen:
 
-```
-#line 34 "README.md"
-```
-
 ```c++
-int main() {
+int main(int argc, const char *argv[]) {
 	// parse input
 	// write output
 	return 0;
@@ -67,22 +63,171 @@ im Terminal mit
 $ c++ md-patcher.cpp -o md-patcher
 ```
 
-erzeugt werden werden.
+oder mit
+
+```
+$ make md-patcher
+```
+
+erzeugt werden.
 Wenn Ihr C++ Compiler anders heißt,
 muss der Aufruf entsprechend angepasst werden.
 Optimierungsoptionen sind in der Regel nicht notwendig.
 Auch das Programm ist sehr einfach und sollte schnell laufen.
 
+Später werden noch Bibliotheken aus Sub-Modulen verwendet,
+so dass der Compiler-Aufruf komplizierter wird.
+Daher liegt bei dem Projekt eine `cmake`-Datei, um das
+Bauen zu vereinfachen: [CMakeLists.txt](./CMakeLists.txt).
+
 Zugegeben, das Programm macht noch nicht sehr viel.
 Aber wir können es jetzt Stück für Stück erweitern.
+Zuerst wird erst einmal Code integriert, um Unit-Tests auszuführen.
+Damit haben wir die Möglichkeit, das Programm nach TDD zu entwickeln.
+Dazu gibt es eine Funktion `run_tests` in `md-patcher.cpp`,
+die bei jedem Start ausgeführt wird:
+
+```c++
+#include <string>
+static inline void run_tests() {
+	// unit-tests
+}
+int main(int argc, const char *argv[]) {
+	run_tests();
+	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
+		return 0;
+	}
+	// ...
+}
+```
+
+Wenn nur die Unit-Tests ausgeführt werden sollen, so kann das mit dem
+Kommandozeilen-Argument `--run-only-tests` angegeben werden.
+
+Wichtig sind die Zeilen mit dem Füll-Kommentar `// ...`.
+Genau diese Zeilen erkennt `md-patcher` und fügt das bisher
+bestehende Programm ein.
+
+`md-patcher` probiert,
+das bestehende Programm mit dem Fragment zusammenzuführen.
+Dabei nutzt es zum einen identische Zeilen als
+Verankerung der beiden Teile miteinander.
+Zum anderen wird mit den Füll-Kommentaren angezeigt,
+an welcher Stelle im Fragment der bestehende Code
+eingesetzt werden kann.
+
+Der resultierende Code
+(dessen Ausgabe jetzt nach `/dev/null` geschrieben wird),
+ist also:
+
+```c++
+static inline void run_tests() {
+	// unit-tests
+}
+int main(int argc, const char *argv[]) {
+	run_tests();
+	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
+		return 0;
+	}
+	// parse input
+	// write output
+	return 0;
+}
+```
+
+Wenn Füll-Kommentare mit Tabs eingerückt sind,
+dann können sie nur durch Code ersetzt werden,
+der ebenfalls mindestens so tief eingerückt ist.
+
+Fangen wir mit einer einfachen Zeile an.
+Sie enthält nicht nur eine gelesene Zeile, sondern
+zusätzlich den Namen der Quell-Datei und die Zeile in der Quell-Datei.
+Diese Informationen werden später benötigt, um die die richtigen `#line`
+Anweisungen zu generieren.
+Definieren wir zuerst einen Test in `md-patcher.cpp`:
+
+```c++
+#include <cassert>
+// ...
+	// unit-tests
+	{ // check Line attributes
+		const Line line { "some-line", "some-file", 42 };
+		assert(line.value() == "some-line");
+		assert(line.file() == "some-file");
+		assert(line.number() == 42);
+	}
+// ...
+```
+
+Hier die entsprechende Struktur:
+
+```c++
+// ...
+#include <string>
+class Line {
+		const std::string value_;
+		const std::string file_;
+		const int number_;
+	public:
+		Line(
+			const std::string &value, const std::string &file,
+			int number
+		):
+			value_ { value }, file_ { file }, number_ { number }
+		{ }
+		const std::string &value() const { return value_; }
+		const std::string &file() const { return file_; }
+		int number() const { return number_; }
+};
+// ...
+```
+
+Eine Ausgabe-Datei hat selber auch einen Namen und beliebig viele Zeilen:
+
+```c++
+// ...
+	// unit-tests
+	{ // check empty file
+		File f { "out.cpp" };
+		assert(f.name() == "out.cpp");
+		assert(f.begin() == f.end());
+	}
+// ...
+```
+
+Hier ist einfache Implementierung der Klasse, um den Unit-Test zum
+Laufen zu bekommen:
+
+```c++
+// ...
+class Line {
+	// ...
+};
+#include <vector>
+class File {
+		std::string name_;
+		std::vector<Line> lines_;
+	public:
+		File(const std::string &name): name_ { name } { }
+		const std::string &name() const { return name_; }
+		auto begin() { return lines_.begin(); }
+		auto begin() const { return lines_.begin(); }
+		auto end() { return lines_.end(); }
+		auto end() const { return lines_.end(); }
+};
+// ...
+```
+
 Um zum Beispiel eine Struktur zu haben,
 in der die Dateien zwischengespeichert werden,
 können wir `md-patcher.cpp` wie folgt erweitern:
 
 ```c++
+// ...
+class File {
+	// ...
+};
 #include <map>
-#include <vector>
-#include <string>
 
 using Lines = std::vector<std::string>;
 using Files = std::map<std::string, Lines>;
@@ -104,37 +249,6 @@ darf.
 Es hilft,
 den Namensraum sauber zu halten.
 
-Wichtig ist die Zeile mit dem Füll-Kommentar `// ...`.
-Genau diese Zeilen erkennt `md-patcher` und fügt das bisher
-bestehende Programm ein.
-`md-patcher` probiert,
-das bestehende Program mit dem Fragment
-zusammenzuführen.
-Dabei nutzt es zum einen identische Zeilen als
-Verankerung der beiden Teile miteinander.
-Zum anderen wird mit den Füll-Kommentaren angezeigt,
-an welcher Stelle im Fragment der bestehende Code
-eingesetzt werden kann.
-
-Der resultierende Code
-(dessen Ausgabe jetzt nach `/dev/null` geschrieben wird),
-ist also:
-
-```c++
-#include <map>
-#include <vector>
-#include <string>
-
-using Lines = std::vector<std::string>;
-using Files = std::map<std::string, Lines>;
-static Files pool;
-int main() {
-	// parse input
-	// write output
-	return 0;
-}
-```
-
 Gleich werden wir sehen,
 dass auch mehrere Füll-Kommentare in einem Fragment
 verwendet werden können.
@@ -151,7 +265,7 @@ Dateien geschrieben:
 ```c++
 #include "lazy-write.h"
 // ...
-int main() {
+int main(int argc, const char *argv[]) {
 	// ...
 	// write output
 	for (const auto &f: pool) {
@@ -244,7 +358,8 @@ Damit kann das Lesen in der `main` Funktion in
 
 ```c++
 // ...
-int main() {
+int main(int argc, const char *argv[]) {
+	// ...
 	// parse input
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {

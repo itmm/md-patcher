@@ -1,8 +1,1 @@
-CMakeCache.txt
-CMakeFiles
-CTestTestfile.cmake
-DartConfiguration.tcl
-Makefile
-Testing
-cmake_install.cmake
-md-patcher
+cmake-build-debug

@@ -10,7 +10,7 @@ add_custom_command(
 	COMMAND $ENV{HOME}/bin/c-cat README.md | $ENV{HOME}/bin/md-patcher
 	DEPENDS README.md
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-	OUTPUT md-patcher.cpp
+	OUTPUT ${PROJECT_SOURCE_DIR}/md-patcher.cpp
 )
 	
 

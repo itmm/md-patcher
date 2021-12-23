@@ -165,9 +165,9 @@ Hier die entsprechende Struktur:
 // ...
 #include <string>
 class Line {
-		const std::string value_;
-		const std::string file_;
-		const int number_;
+		std::string value_;
+		std::string file_;
+		int number_;
 	public:
 		Line(
 			const std::string &value, const std::string &file,
@@ -214,6 +214,9 @@ class File {
 		auto begin() const { return lines_.begin(); }
 		auto end() { return lines_.end(); }
 		auto end() const { return lines_.end(); }
+		auto insert(std::vector<Line>::iterator pos, const Line &line) {
+			return lines_.insert(pos, line);
+		}	
 };
 // ...
 ```
@@ -230,7 +233,7 @@ class File {
 #include <map>
 
 using Lines = std::vector<std::string>;
-using Files = std::map<std::string, Lines>;
+using Files = std::map<std::string, File>;
 static Files pool;
 // ...
 ```
@@ -271,7 +274,8 @@ int main(int argc, const char *argv[]) {
 	for (const auto &f: pool) {
 		Lazy_Write out(f.first);
 		for (const auto &l: f.second) {
-			out << l; out.put('\n');
+			// TODO: add #line statements
+			out << l.value(); out.put('\n');
 		}
 	}
 	// ...
@@ -366,7 +370,12 @@ int main(int argc, const char *argv[]) {
 		if (starts_with(line, "```") &&
 			line.length() > 3
 		) {
-			if (! read_patch(pool[cur_file])) { break; }
+			auto f { pool.find(cur_file) };
+			if (f == pool.end()) {
+				pool.insert({cur_file, File { cur_file }});
+				f = pool.find(cur_file);
+			}
+			if (! read_patch(f->second)) { break; }
 		} else {
 			change_file(cur_file);
 			if (! next()) { break; }
@@ -425,6 +434,7 @@ static void change_file(std::string &file) {
 		if (start_idx != std::string::npos &&
 			start_idx < last_idx
 		) {
+			// TODO: only change if contains '.' or '/'
 			file = line.substr(
 				start_idx, last_idx - start_idx
 			);
@@ -458,20 +468,21 @@ Datei hält:
 // ...
 static Files pool;
 
-static Lines::iterator insert_before(
-	const std::string &ins, Lines::iterator cur,
-	Lines &lines
+template<typename IT>
+static IT insert_before(
+	const std::string &ins, IT cur,
+	File &file
 ) {
-	auto p { cur - lines.begin() };
-	lines.insert(cur, ins);
-	return lines.begin() + (p + 1);
+	auto p { cur - file.begin() };
+	file.insert(cur, Line { ins, reader.pos().file_name(), reader.pos().line() });
+	return file.begin() + (p + 1);
 }
 
 // patch helpers
 
-static inline bool read_patch(Lines &lines) {
+static inline bool read_patch(File &file) {
 	if (! next()) { return false; }
-	Lines::iterator cur { lines.begin() };
+	auto cur { file.begin() };
 	File_Position pos { "", 0 };
 	File_Position old_pos { pos };
 	std::string indent;
@@ -482,7 +493,7 @@ static inline bool read_patch(Lines &lines) {
 			return false;
 		}
 	}
-	if (cur != lines.end()) {
+	if (cur != file.end()) {
 		err_pos() << "incomplete patch\n";
 		return false;
 	}
@@ -495,12 +506,12 @@ Es gibt folgende Fälle beim Code-Parsen zu unterscheiden:
 
 ```c++
 // ...
-static inline bool read_patch(Lines &lines) {
+static inline bool read_patch(File &file) {
 	// ...
 	while (line != "```") {
 		// handle code
-		if (cur != lines.end()) {
-			File_Position xp { old_pos.parse_line_macro(*cur) };
+		if (cur != file.end()) {
+			File_Position xp { old_pos.parse_line_macro(cur->value()) };
 			if (xp) {
 				old_pos = xp;
 				++cur;
@@ -510,12 +521,12 @@ static inline bool read_patch(Lines &lines) {
 		if (line_is_wildcard(indent)) {
 			// do wildcard
 			continue;
-		} else if (cur != lines.end() && line == *cur) {
+		} else if (cur != file.end() && line == cur->value()) {
 			std::string line_macro {
 				pos.line_macro(old_pos)
 			};
 			if (! line_macro.empty()) {
-				cur = insert_before(line_macro, cur, lines);
+				cur = insert_before(line_macro, cur, file);
 			}
 			++cur;
 			++pos; old_pos = pos;
@@ -535,7 +546,7 @@ Es muss also über den Index gegangen werden:
 
 ```c++
 // ...
-static inline bool read_patch(Lines &lines) {
+static inline bool read_patch(File &file) {
 	// ...
 	while (line != "```") {
 		// ...
@@ -544,9 +555,9 @@ static inline bool read_patch(Lines &lines) {
 				pos.line_macro(reader.pos())
 			};
 			if (! line_macro.empty()) {
-				cur = insert_before(line_macro, cur, lines);
+				cur = insert_before(line_macro, cur, file);
 			}
-			cur = insert_before(line, cur, lines);
+			cur = insert_before(line, cur, file);
 			++pos;
 		// ...
 	}
@@ -561,13 +572,13 @@ um ein vorzeitiges Ende des Kopierens zu erkennen:
 
 ```c++
 // ...
-static inline bool read_patch(Lines &lines) {
+static inline bool read_patch(File &file) {
 	// ...
 	while (line != "```") {
 		// ...
 			// do wildcard
 			if (! do_wildcard(
-				indent, lines, cur, pos, old_pos
+				indent, file, cur, pos, old_pos
 			)) { return false; }
 		// ...
 	}
@@ -603,10 +614,11 @@ werden:
 // ...
 // patch helpers
 
+template<typename IT>
 static inline bool do_wildcard(
 	const std::string &indent,
-	Lines &lines,
-	Lines::iterator &cur,
+	File &file,
+	IT &cur,
 	File_Position &pos,
 	File_Position &old_pos
 ) {
@@ -614,20 +626,20 @@ static inline bool do_wildcard(
 		err_pos() << "end of file after wildcard\n";
 		return false;
 	}
-	while (cur != lines.end()) { 
+	while (cur != file.end()) { 
 		std::string macro {
 			pos.line_macro(old_pos)
 		};
 		if (! macro.empty()) {
-			cur = insert_before(macro, cur, lines);
+			cur = insert_before(macro, cur, file);
 		}
-		File_Position fp { pos.parse_line_macro(*cur) };
+		File_Position fp { pos.parse_line_macro(cur->value()) };
 		if (fp) {
 			++cur;
 			continue;
 		}
-		if (! starts_with(*cur, indent)) { break; }
-		if (line != "```" && *cur == line) { break; }
+		if (! starts_with(cur->value(), indent)) { break; }
+		if (line != "```" && cur->value() == line) { break; }
 		++cur;
 		++pos;
 		old_pos = pos;

@@ -14,7 +14,7 @@ add_custom_command(
 )
 	
 
-add_executable(md-patcher md-patcher.cpp)
+add_executable(md-patcher ${PROJECT_SOURCE_DIR}/md-patcher.cpp)
 target_link_libraries(md-patcher line-reader lazy-write)
 
 include(CTest)

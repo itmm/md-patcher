@@ -206,7 +206,8 @@ class Line {
 #include <vector>
 class File {
 		std::string name_;
-		std::vector<Line> lines_;
+		using Lines = std::vector<Line>;
+		Lines lines_;
 	public:
 		File(const std::string &name): name_ { name } { }
 		const std::string &name() const { return name_; }
@@ -237,80 +238,232 @@ static std::map<std::string, File> pool;
 Zäumen wir das Pferd von hinten auf und betrachten zuerst
 die Ausgabe.
 Es werden einfach alle Zeilen in die entsprechenden
-Dateien geschrieben:
+Dateien geschrieben.
+Bisher gibt es zwar noch keine Zeilen.
+Dem entsprechend ist das Ergebnis leer.
 
 ```c++
-#include "lazy-write.h"
-template <typename S>
-void put_num(S &s, int num) {
+// ...
+	// unit-tests
+	{ // write emtpy file
+		const File f { "out.txt" };
+		auto c { write_file_to_string(f) };
+		assert(c == "");
+	}
+// ...
+```
+
+Momentan gibt es noch gar nicht die Methode, die ein `File` in einen
+`std::string` schreibt.
+Daher wird diese erst einmal definiert:
+
+```c++
+// ...
+class File {
+	// ...
+};
+#include <sstream>
+std::string write_file_to_string(const File &f) {
+	std::ostringstream out;
+	return write_file_to_stream(f, out).str();
+}
+// ...
+```
+
+Aber auch die verwendete Methode gibt es noch nicht.
+Diese wird als `template` implementiert,
+da nicht jeder Stream einen vollen `std::ostream` implementiert:
+
+```c++
+// ...
+class File {
+	// ...
+};
+template<typename ST>
+ST &write_file_to_stream(const File &f, ST &out) {
+	for (const auto &l : f) {
+		out << l.value(); out.put('\n');
+	}
+	return out;
+}
+// ...
+```
+
+Der nächste Test haucht den Dateien Inhalt ein:
+
+```c++
+// ...
+	// unit-tests
+	{ // copy simple file
+		File f { "out.txt" };
+		auto it = f.begin();
+		it = f.insert(it, { "line 1", "out.txt", 1 });
+		it = f.insert(it, { "line 2", "out.txt", 2 });
+		auto c { write_file_to_string(f) };
+		assert(c == "line 1\nline 2\n");
+	}
+// ...
+```
+
+Dazu muss aber zuerst die Methode zum Einfügen von Zeilen implementiert
+werden:
+
+```c++
+// ...
+class File {
+	// ...
+	public:
+		// ...
+		auto begin() { return lines_.begin(); }
+		using iterator = Lines::iterator;
+		iterator insert(iterator pos, const Line &line) {
+			auto p { pos - begin() };
+			lines_.insert(pos, line);
+			return begin() + (p + 1);
+		}	
+		// ...
+};
+// ...
+```
+
+Interessant wird es, wenn die Zeilen in der Ursprungs-Datei nicht fortlaufend
+sortiert waren.
+In diesem Fall muss ein spezielles `#line` Makro generiert werden:
+
+
+```c++
+// ...
+	// unit-tests
+	{ // non-continuous file
+		File f { "out.txt" };
+		auto it = f.begin();
+		it = f.insert(it, { "line 1", "out.txt", 1 });
+		it = f.insert(it, { "line 2", "out.txt", 10 });
+		auto c { write_file_to_string(f) };
+		assert(c == "line 1\n#line 10\nline 2\n");
+	}
+// ...
+```
+
+Beim Schreiben muss daher die aktuelle Datei und Zeilen-Nummer mit
+gespeichert und passend aktualisiert werden:
+
+```c++
+// ...
+template<typename ST>
+ST &write_file_to_stream(const File &f, ST &out) {
+	auto name { f.name() };
+	int line { 1 };
+	for (const auto &l : f) {
+		if (line != l.number() || name != l.file()) {
+			// write line macro
+		}
+		out << l.value(); out.put('\n');
+		++line;
+	}
+	return out;
+}
+// ...
+```
+
+Bei der Ausgabe wird eine Hilfsmethode benötigt, um positive Zahlen
+auszugeben:
+
+```c++
+// ...
+			// write line macro
+			out << "#line ";
+			put_num(out, l.number());
+			if (name != l.file()) {
+				out.put(' ');
+				out.put('"');
+				out << l.file();
+				out.put('"');
+			}
+			out.put('\n');
+			line = l.number();
+			name = l.file();
+// ...
+```
+
+Diese Funktion muss auch noch definiert werden:
+
+
+```c++
+// ...
+template<typename ST>
+void put_num(ST &s, int num) {
 	if (num) {
 		put_num(s, num / 10);
 		s.put((num % 10) + '0');
 	}
 }
+template<typename ST>
 // ...
-int main(int argc, const char *argv[]) {
-	// ...
-	// write output
-	for (const auto &f: pool) {
-		Lazy_Write out(f.first);
-		std::string name { f.first };
-		int line { 1 };
-		for (const auto &l: f.second) {
-			if (line != l.number() || name != l.file()) {
-				out << "#line ";
-				put_num(out, l.number());
-				if (name != l.file()) {
-					out.put(' ');
-					out.put('"');
-					out << l.file();
-					out.put('"');
-				}
-				out.put('\n');
-				line = l.number();
-				name = l.file();
-			}
-			++line;
-			out << l.value(); out.put('\n');
-		}
-	}
-	// ...
-}
 ```
 
-Die äußere `for`-Schleife iteriert über alle Dateien,
-die in der Eingabe gefunden wurden.
-Für jede Datei wird ein Ausgabe-Strom geöffnet.
-In diesen werden alle Zeilen der Datei hineingeschrieben.
-Die Einträge der `pool`-Variablen sind Paare:
-das erste Teil-Element `first` enthält den Namen der Datei.
-Das zweite Teil-Element `second` die Liste der Zeilen.
-Mit dem `<<` Operator können Elemente in Ausgabe-Ströme
-geschrieben werden.
-Die Zeilen werden mit einem einfachen Linefeed abgeschlossen.
+Wir können auch testen, was passiert wenn die gleich die erste Zeile falsch
+ist:
 
-Wenn die Füll-Kommentare mitten im Code stehen,
-werden so lange bestehende Zeichen verwendet,
-bis die nächste Zeile identisch ist,
-oder eine Zeile mit geringerer Einrückung kommt.
-In diesem Fall beendet einmal die Definition von
-`main` und einmal der Kommentar `// write output` das
-Kopieren.
-Die gemeinsamen Zeilen werden übernommen und nicht
-erneut eingefügt.
 
-Wichtig ist hierbei zu beachten,
-dass `md-patcher` keine eingefügten Zeilen erkennen kann,
-die nach einem Füll-Kommentar vor einer gemeinsamen
-Zeile kommen.
-Da keine bestehende Zeile mit der neuen Zeile
-übereinstimmt,
-wird das ganze bestehende Programm an dieser Stelle
-eingesetzt.
-Danach wird der gesamte Rest des Fragments am Ende
-angehängt.
-Inklusive der gemeinsamen Zeile
-(die damit doppelt vorkommt).
+```c++
+// ...
+	// unit-tests
+	{ // not starting at one
+		File f { "out.txt" };
+		auto it = f.begin();
+		it = f.insert(it, { "line 1", "out.txt", 4 });
+		it = f.insert(it, { "line 2", "out.txt", 5 });
+		auto c { write_file_to_string(f) };
+		assert(c == "#line 4\nline 1\nline 2\n");
+	}
+// ...
+```
+
+Oder wenn sich die Datei ändert:
+
+
+```c++
+// ...
+	// unit-tests
+	{ // different files
+		File f { "out.txt" };
+		auto it = f.begin();
+		it = f.insert(it, { "line 1", "out.txt", 1 });
+		it = f.insert(it, { "line 2", "other.txt", 2 });
+		auto c { write_file_to_string(f) };
+		assert(c == "line 1\n#line 2 \"other.txt\"\nline 2\n");
+	}
+// ...
+```
+
+Bei der eigentlichen Ausgabe wird statt dessen die Lazy-Write Bibliothek
+benutzt.
+Damit werden die Dateien nur dann neu geschrieben, wenn sie sich auch wirklich
+verändern.
+
+```c++
+// ...
+ST &write_file_to_stream(const File &f, ST &out) {
+	// ...
+}
+#include "lazy-write.h"
+
+inline void write_file(const File &f) {
+	Lazy_Write out { f.name() };
+	write_file_to_stream(f, out);
+}
+// ...
+```
+
+```c++
+// ...
+	// write output
+	for (const auto &f: pool) {
+		write_file(f.second);
+	}
+// ...
+```
 
 ## Eingabe lesen
 
@@ -358,21 +511,6 @@ Damit kann das Lesen in der `main` Funktion in
 
 ```c++
 // ...
-class File {
-	// ...
-	public:
-		auto insert(std::vector<Line>::iterator pos, const Line &line) {
-			return lines_.insert(pos, line);
-		}	
-		// ...
-};
-// ...
-```
-
-```c++
-// ...
-int main(int argc, const char *argv[]) {
-	// ...
 	// parse input
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {
@@ -390,8 +528,7 @@ int main(int argc, const char *argv[]) {
 			if (! next()) { break; }
 		}
 	}
-	// ...
-}
+// ...
 ```
 
 Es werden so lange Zeilen gelesen,

@@ -1,24 +1,15 @@
-#line 243 "README.md"
-#include "lazy-write.h"
-template <typename S>
-void put_num(S &s, int num) {
-	if (num) {
-		put_num(s, num / 10);
-		s.put((num % 10) + '0');
-	}
-}
-#line 150
+#line 150 "README.md"
 #include <cassert>
 #line 91
 #include <string>
-#line 326
+#line 479
 #include <iostream>
 #include "line-reader.h"
 
 static std::string line;
-#line 410
+#line 547
 
-#line 586
+#line 723
 static inline bool line_is_wildcard(
 	std::string &indent
 ) {
@@ -29,7 +20,7 @@ static inline bool line_is_wildcard(
 	indent = line.substr(0, idx);
 	return true;
 }
-#line 437
+#line 574
 static void change_file(std::string &file) {
 	const auto last_idx { line.rfind('`') };
 	if (last_idx != std::string::npos && last_idx > 0) {
@@ -48,7 +39,7 @@ static void change_file(std::string &file) {
 		}
 	}
 }
-#line 411
+#line 548
 static bool starts_with(
 	const std::string &base,
 	const std::string &prefix
@@ -57,7 +48,7 @@ static bool starts_with(
 	return base.size() >= prefix.size() &&
 		base.substr(0, prefix.size()) == prefix;
 }
-#line 330
+#line 483
 static Line_Reader reader { "", std::cin };
 
 static bool next() {
@@ -90,25 +81,84 @@ class Line {
 #include <vector>
 class File {
 		std::string name_;
-		std::vector<Line> lines_;
+		using Lines = std::vector<Line>;
+		Lines lines_;
 	public:
-#line 364
-		auto insert(std::vector<Line>::iterator pos, const Line &line) {
-			return lines_.insert(pos, line);
-		}	
-#line 211
 		File(const std::string &name): name_ { name } { }
 		const std::string &name() const { return name_; }
 		auto begin() { return lines_.begin(); }
+#line 318
+		using iterator = Lines::iterator;
+		iterator insert(iterator pos, const Line &line) {
+			auto p { pos - begin() };
+			lines_.insert(pos, line);
+			return begin() + (p + 1);
+		}	
+#line 215
 		auto begin() const { return lines_.begin(); }
 		auto end() { return lines_.end(); }
 		auto end() const { return lines_.end(); }
 };
-#line 229
+#line 282
+template<typename ST>
+#line 395
+void put_num(ST &s, int num) {
+	if (num) {
+		put_num(s, num / 10);
+		s.put((num % 10) + '0');
+	}
+}
+template<typename ST>
+#line 283
+ST &write_file_to_stream(const File &f, ST &out) {
+#line 355
+	auto name { f.name() };
+	int line { 1 };
+#line 284
+	for (const auto &l : f) {
+#line 358
+		if (line != l.number() || name != l.file()) {
+			// write line macro
+#line 375
+			out << "#line ";
+			put_num(out, l.number());
+			if (name != l.file()) {
+				out.put(' ');
+				out.put('"');
+				out << l.file();
+				out.put('"');
+			}
+			out.put('\n');
+			line = l.number();
+			name = l.file();
+#line 360
+		}
+#line 285
+		out << l.value(); out.put('\n');
+#line 362
+		++line;
+#line 286
+	}
+	return out;
+}
+#line 450
+#include "lazy-write.h"
+
+inline void write_file(const File &f) {
+	Lazy_Write out { f.name() };
+	write_file_to_stream(f, out);
+}
+#line 265
+#include <sstream>
+std::string write_file_to_string(const File &f) {
+	std::ostringstream out;
+	return write_file_to_stream(f, out).str();
+}
+#line 230
 #include <map>
 
 static std::map<std::string, File> pool;
-#line 481
+#line 618
 
 template<typename IT>
 static IT insert_before(
@@ -124,7 +174,7 @@ static IT insert_before(
 
 // patch helpers
 
-#line 606
+#line 743
 template<typename IT>
 static inline bool do_wildcard(
 	const std::string &indent,
@@ -142,31 +192,31 @@ static inline bool do_wildcard(
 	}
 	return true;
 }
-#line 496
+#line 633
 static inline bool read_patch(File &file) {
 	if (! next()) { return false; }
 	auto cur { file.begin() };
 	std::string indent;
 	while (line != "```") {
 		// handle code
-#line 524
+#line 661
 		if (line_is_wildcard(indent)) {
 			// do wildcard
-#line 569
+#line 706
 			if (! do_wildcard(indent, file, cur)) {
 				return false;
 			}
-#line 526
+#line 663
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
 			++cur;
 		} else {
 			// insert line
-#line 550
+#line 687
 			cur = insert_before(line, cur, file);
-#line 531
+#line 668
 		}
-#line 502
+#line 639
 		if (! next()) {
 			err_pos() << "end of file in code block\n";
 			return false;
@@ -181,6 +231,48 @@ static inline bool read_patch(File &file) {
 #line 92
 static inline void run_tests() {
 	// unit-tests
+#line 429
+	{ // different files
+		File f { "out.txt" };
+		auto it = f.begin();
+		it = f.insert(it, { "line 1", "out.txt", 1 });
+		it = f.insert(it, { "line 2", "other.txt", 2 });
+		auto c { write_file_to_string(f) };
+		assert(c == "line 1\n#line 2 \"other.txt\"\nline 2\n");
+	}
+#line 412
+	{ // not starting at one
+		File f { "out.txt" };
+		auto it = f.begin();
+		it = f.insert(it, { "line 1", "out.txt", 4 });
+		it = f.insert(it, { "line 2", "out.txt", 5 });
+		auto c { write_file_to_string(f) };
+		assert(c == "#line 4\nline 1\nline 2\n");
+	}
+#line 337
+	{ // non-continuous file
+		File f { "out.txt" };
+		auto it = f.begin();
+		it = f.insert(it, { "line 1", "out.txt", 1 });
+		it = f.insert(it, { "line 2", "out.txt", 10 });
+		auto c { write_file_to_string(f) };
+		assert(c == "line 1\n#line 10\nline 2\n");
+	}
+#line 297
+	{ // copy simple file
+		File f { "out.txt" };
+		auto it = f.begin();
+		it = f.insert(it, { "line 1", "out.txt", 1 });
+		it = f.insert(it, { "line 2", "out.txt", 2 });
+		auto c { write_file_to_string(f) };
+		assert(c == "line 1\nline 2\n");
+	}
+#line 248
+	{ // write emtpy file
+		const File f { "out.txt" };
+		auto c { write_file_to_string(f) };
+		assert(c == "");
+	}
 #line 190
 	{ // check empty file
 		File f { "out.cpp" };
@@ -205,7 +297,7 @@ int main(int argc, const char *argv[]) {
 	}
 #line 35
 	// parse input
-#line 377
+#line 515
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {
 		if (starts_with(line, "```") &&
@@ -224,28 +316,9 @@ int main(int argc, const char *argv[]) {
 	}
 #line 36
 	// write output
-#line 255
+#line 462
 	for (const auto &f: pool) {
-		Lazy_Write out(f.first);
-		std::string name { f.first };
-		int line { 1 };
-		for (const auto &l: f.second) {
-			if (line != l.number() || name != l.file()) {
-				out << "#line ";
-				put_num(out, l.number());
-				if (name != l.file()) {
-					out.put(' ');
-					out.put('"');
-					out << l.file();
-					out.put('"');
-				}
-				out.put('\n');
-				line = l.number();
-				name = l.file();
-			}
-			++line;
-			out << l.value(); out.put('\n');
-		}
+		write_file(f.second);
 	}
 #line 37
 	return 0;

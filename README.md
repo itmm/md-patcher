@@ -127,8 +127,8 @@ Wenn Füll-Kommentare mit Tabs eingerückt sind,
 dann können sie nur durch Code ersetzt werden,
 der ebenfalls mindestens so tief eingerückt ist.
 
-Fangen wir mit einer einfachen Zeile an.
-Sie enthält nicht nur eine gelesene Zeile, sondern
+Als erste Struktur definieren wir eine Zeile.
+Sie enthält nicht nur die gelesenen Zeichen, sondern
 zusätzlich den Namen der Quell-Datei und die Zeile in der Quell-Datei.
 Diese Informationen werden später benötigt, um die die richtigen `#line`
 Anweisungen zu generieren.
@@ -170,6 +170,9 @@ class Line {
 // ...
 ```
 
+Die Attribute sind nicht `const`, da `Line`-Instanzen einander zugewiesen
+werden können.
+
 Eine Ausgabe-Datei hat selber auch einen Namen und beliebig viele Zeilen:
 
 ```c++
@@ -193,7 +196,7 @@ class Line {
 };
 #include <vector>
 class File {
-		std::string name_;
+		const std::string name_;
 		using Lines = std::vector<Line>;
 		Lines lines_;
 	public:
@@ -277,6 +280,12 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 ```
 
+Die Parameter werden als `template` implementiert.
+Später verwenden wir anstatt Streams einen `Lazy_Writer`,
+der Dateien nur schreibt, wenn sie sich auch verändert haben.
+Dadurch bleiben die Änderungszeitstempel von Dateien erhalten, die
+sich nicht verändert haben.
+
 Der nächste Test haucht den Dateien Inhalt ein:
 
 ```c++
@@ -313,6 +322,10 @@ class File {
 };
 // ...
 ```
+
+Da normale Iteratoren beim `insert` ihre Gültigkeit verlieren können,
+wird die Index-Position gesichert und daraus nach dem `insert` wieder
+ein gültiger Iterator erzeugt.
 
 Interessant wird es, wenn die Zeilen in der Ursprungs-Datei nicht fortlaufend
 sortiert waren.
@@ -425,7 +438,7 @@ Oder wenn sich die Datei ändert:
 // ...
 ```
 
-Bei der eigentlichen Ausgabe wird statt dessen die Lazy-Write Bibliothek
+Bei der eigentlichen Ausgabe wird statt dessen die `lazy-write` Bibliothek
 benutzt.
 Damit werden die Dateien nur dann neu geschrieben, wenn sie sich auch wirklich
 verändern.
@@ -444,6 +457,12 @@ inline void write_file(const File &f) {
 // ...
 ```
 
+Diese Bibliothek ist auch der Grund dafür, dass Zahlen nicht direkt ausgegeben
+werden können. `lazy-write` unterstützt nur die Ausgabe von Zeichen und
+`string`s.
+
+Nun kann die Ausgabe abgeschlossen werden:
+
 ```c++
 // ...
 	// write output
@@ -455,11 +474,9 @@ inline void write_file(const File &f) {
 
 ## Eingabe lesen
 
-Um das Programm einfach zu halten,
-wird die aktuell gelesene Zeile und ihre Zeilennummer
-in globalen Variablen abgelegt.
-Zusätzlich gibt es in `md-patcher.cpp` eine Funktion,
-um die nächste Zeile zu lesen:
+Das Lesen der Eingabe übernimmt eine weitere Bibliothek: `line-reader`.
+Die Klasse `Line_Reader_Pool` enthält eine ganze Liste von offenen Dateien,
+die nach einander abgearbeitet werden.
 
 ```c++
 // ...
@@ -483,15 +500,85 @@ std::ostream &err_pos() {
 // ...
 ```
 
-Auch Funktionen können als `static` markiert werden.
-Sie können dann auch nur innerhalb der aktuellen
-Übersetzungseinheit verwendet werden.
-
 Der zusätzliche Kommentar hilft uns später Funktionen
 zu definieren,
 die `next` aufrufen.
 Diese müssen nach der Funktion `next` definiert werden,
 oder es gibt einen Fehler bei der Übersetzung.
+
+Die Methode `next` gibt die nächste Zeile zurück und mit
+`pos` kann der Dateiname und die Zeilennummer der nächsten Zeile ermittelt
+werden.
+
+```c++
+// ...
+	// unit-tests
+	{ // reading lines
+		Line_Reader_Pool pool;
+		std::istringstream in { "abc\ndef\n" };
+		pool.push_back("x", in);
+		std::string line;
+		assert(pool.next(line));
+		assert(line == "abc");
+		assert(pool.pos().file_name() == "x");
+		assert(pool.pos().line() == 1);
+		assert(pool.next(line));
+		assert(line == "def");
+		assert(pool.pos().file_name() == "x");
+		assert(pool.pos().line() == 2);
+		assert(! pool.next(line));
+	}
+// ...
+```
+
+Es können auch mehrere Dateien auf einmal gelesen werden:
+
+
+```c++
+// ...
+	// unit-tests
+	{ // reading lines from multiple files
+		Line_Reader_Pool pool;
+		std::istringstream in1 { "abc" };
+		std::istringstream in2 { "def" };
+		pool.push_back("x", in1);
+		pool.push_back("y", in2);
+		std::string line;
+		assert(pool.next(line));
+		assert(line == "abc");
+		assert(pool.pos().file_name() == "x");
+		assert(pool.pos().line() == 1);
+		assert(pool.next(line));
+		assert(line == "def");
+		assert(pool.pos().file_name() == "y");
+		assert(pool.pos().line() == 1);
+		assert(! pool.next(line));
+	}
+// ...
+```
+
+`#line` Makros in der Eingabe werden richtig verarbeitet:
+
+```c++
+// ...
+	// unit-tests
+	{ // reading lines with line macro
+		Line_Reader_Pool pool;
+		std::istringstream in { "abc\n#line 3 \"z\"\ndef" };
+		pool.push_back("x", in);
+		std::string line;
+		assert(pool.next(line));
+		assert(line == "abc");
+		assert(pool.pos().file_name() == "x");
+		assert(pool.pos().line() == 1);
+		assert(pool.next(line));
+		assert(line == "def");
+		assert(pool.pos().file_name() == "z");
+		assert(pool.pos().line() == 3);
+		assert(! pool.next(line));
+	}
+// ...
+```
 
 Damit kann das Lesen in der `main` Funktion in
 `md-patcher.cpp` beschrieben werden
@@ -513,7 +600,7 @@ Damit kann das Lesen in der `main` Funktion in
 			}
 			if (! read_patch(f->second)) { break; }
 		} else {
-			change_file(cur_file);
+			change_cur_file_name(cur_file);
 			if (! next()) { break; }
 		}
 	}
@@ -560,7 +647,7 @@ der aktuelle Dateiname:
 // ...
 static std::string line;
 
-static void change_file(std::string &file) {
+static void change_cur_file_name(std::string &file) {
 	const auto last_idx { line.rfind('`') };
 	if (last_idx != std::string::npos && last_idx > 0) {
 		const auto start_idx { line.rfind(

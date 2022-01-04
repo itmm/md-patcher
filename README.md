@@ -846,7 +846,6 @@ extrahiert:
 	{ // find file name in line
 		std::string l { "a line with [bla](bla.md) a link" };
 		std::string got { link_in_line(l) };
-		std::cerr << "got: " << got << "\n";
 		assert(got == "bla.md");
 	}
 // ...

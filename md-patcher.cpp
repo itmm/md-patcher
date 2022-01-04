@@ -2,7 +2,7 @@
 #include <cassert>
 #line 79
 #include <string>
-#line 861
+#line 860
 
 static std::string link_in_line(const std::string &line) {
 	std::string got;
@@ -249,7 +249,6 @@ static inline void run_tests() {
 	{ // find file name in line
 		std::string l { "a line with [bla](bla.md) a link" };
 		std::string got { link_in_line(l) };
-		std::cerr << "got: " << got << "\n";
 		assert(got == "bla.md");
 	}
 #line 565
@@ -381,7 +380,7 @@ int main(int argc, const char *argv[]) {
 			if (! read_patch(f->second)) { break; }
 		} else {
 			change_cur_file_name(cur_file);
-#line 883
+#line 882
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
 				reader.push_front(sub);

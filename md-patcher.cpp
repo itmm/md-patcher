@@ -7,9 +7,9 @@
 #include "line-reader.h"
 
 static std::string line;
-#line 547
+#line 548
 
-#line 723
+#line 724
 static inline bool line_is_wildcard(
 	std::string &indent
 ) {
@@ -20,7 +20,7 @@ static inline bool line_is_wildcard(
 	indent = line.substr(0, idx);
 	return true;
 }
-#line 574
+#line 575
 static void change_file(std::string &file) {
 	const auto last_idx { line.rfind('`') };
 	if (last_idx != std::string::npos && last_idx > 0) {
@@ -39,7 +39,7 @@ static void change_file(std::string &file) {
 		}
 	}
 }
-#line 548
+#line 549
 static bool starts_with(
 	const std::string &base,
 	const std::string &prefix
@@ -49,7 +49,7 @@ static bool starts_with(
 		base.substr(0, prefix.size()) == prefix;
 }
 #line 483
-static Line_Reader reader { "", std::cin };
+static Line_Reader_Pool reader;
 
 static bool next() {
 	return reader.next(line);
@@ -158,7 +158,7 @@ std::string write_file_to_string(const File &f) {
 #include <map>
 
 static std::map<std::string, File> pool;
-#line 618
+#line 619
 
 template<typename IT>
 static IT insert_before(
@@ -174,7 +174,7 @@ static IT insert_before(
 
 // patch helpers
 
-#line 743
+#line 744
 template<typename IT>
 static inline bool do_wildcard(
 	const std::string &indent,
@@ -192,31 +192,31 @@ static inline bool do_wildcard(
 	}
 	return true;
 }
-#line 633
+#line 634
 static inline bool read_patch(File &file) {
 	if (! next()) { return false; }
 	auto cur { file.begin() };
 	std::string indent;
 	while (line != "```") {
 		// handle code
-#line 661
+#line 662
 		if (line_is_wildcard(indent)) {
 			// do wildcard
-#line 706
+#line 707
 			if (! do_wildcard(indent, file, cur)) {
 				return false;
 			}
-#line 663
+#line 664
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
 			++cur;
 		} else {
 			// insert line
-#line 687
+#line 688
 			cur = insert_before(line, cur, file);
-#line 668
+#line 669
 		}
-#line 639
+#line 640
 		if (! next()) {
 			err_pos() << "end of file in code block\n";
 			return false;
@@ -298,6 +298,7 @@ int main(int argc, const char *argv[]) {
 #line 35
 	// parse input
 #line 515
+	reader.populate(argc, argv);
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {
 		if (starts_with(line, "```") &&

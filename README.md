@@ -480,7 +480,7 @@ um die nächste Zeile zu lesen:
 #include "line-reader.h"
 
 static std::string line;
-static Line_Reader reader { "", std::cin };
+static Line_Reader_Pool reader;
 
 static bool next() {
 	return reader.next(line);
@@ -512,6 +512,7 @@ Damit kann das Lesen in der `main` Funktion in
 ```c++
 // ...
 	// parse input
+	reader.populate(argc, argv);
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {
 		if (starts_with(line, "```") &&

@@ -6,23 +6,22 @@ kompilierbare Programme zu extrahieren.
 ## Genereller Aufbau
 
 `md-patcher` ist sehr einfach gehalten.
-Es liest eine Markdown-Datei über die Standard-Eingabe
-und probiert darin enthaltene Code-Fragmente zu Dateien
-zusammenzusetzen.
-Diese werden am Ende dann herausgeschrieben.
+Es liest Markdown-Dateien und probiert,
+darin enthaltene Code-Fragmente zu Dateien zusammenzusetzen.
+Diese werden dann herausgeschrieben.
 Den Datei-Namen nimmt `md-patcher` aus den normalen
-Text-Blöcken.
-Jedes Inline-Codefragment ändert den Namen der aktuellen
-Datei.
-Im Moment lautet die Datei als `md-patcher`.
-Bevor ein relevantes Code-Fragment kommt, sollte die Datei
-also zum Beispiel mit `md-patcher.cpp` auf einen sinnvolleren
-Namen gesetzt werden.
-Das Programm prüft nicht, ob der Name sinnvoll ist.
+Text-Blöcken:
+Jedes Inline-Codefragment
+(das mindestens einen Slash oder Punkt enthält)
+ändert den Namen der aktuellen Datei.
+Bevor ein relevantes Code-Fragment kommt,
+sollte die Datei also zum Beispiel mit `md-patcher.cpp`
+auf einen sinnvollen Namen gesetzt werden.
+Achtung: Das Programm prüft nicht, ob der Name sinnvoll ist.
 Zur Sicherheit sollte immer direkt vor einem Code-Block
 der Name der Datei angegeben werden.
 Dies erleichtert zusätzlich dem Leser,
-den Zusammenhang zu begreifen.
+den Zusammenhang der Code-Blöcke im Kopf zu behalten.
 
 Die Datei muss nicht auf einen Schlag angegeben werden.
 Es können Fragmente angegeben werden,
@@ -40,15 +39,14 @@ int main(int argc, const char *argv[]) {
 
 Das Programm ist in C++ geschrieben.
 Genauer: dem C++17 Standard.
-Ich denke,
-diese Sprache erlaubt eine vernünftige Balance
+Ich denke, diese Sprache erlaubt eine vernünftige Balance
 zwischen Kompaktheit und Ausführungsgeschwindigkeit.
-Im Gegensatz zu C gibt es schon mächtige Werkzeuge zum
-Umgang mit Containern.
-Und trotzdem ist das erzeugte Programm schnell.
+Im Gegensatz zu C gibt es schon mächtige Werkzeuge für den
+Umgang mit Containern in der Standard-Bibliothek.
+Und trotzdem ist das erzeugte Programm schnell und hat wenig externe
+Abhängigkeiten..
 
-Das gerade angegebene Fragment definiert nur eine
-Funktion `main`.
+Das gerade angegebene Fragment definiert nur eine Funktion `main`.
 Dies ist die zentrale Funktion,
 die aufgerufen wird,
 wenn wir das Programm starten.
@@ -56,29 +54,19 @@ Die Zeichen `//` leiten einen Kommentar ein.
 Alles was hinter den beiden Zeichen steht,
 wird vom Compiler ignoriert.
 
-Ein ausführbares Programm kann zum Beispiel unter Linux
-im Terminal mit
+Das Programm kann mit `cmake` gebaut werden.
+Die entsprechende Konfigurationsdatei liegt in
+[CMakeLists.txt](./CMakeLists.txt).
 
-```
-$ c++ md-patcher.cpp -o md-patcher
-```
-
-oder mit
-
-```
-$ make md-patcher
-```
-
-erzeugt werden.
-Wenn Ihr C++ Compiler anders heißt,
-muss der Aufruf entsprechend angepasst werden.
-Optimierungsoptionen sind in der Regel nicht notwendig.
-Auch das Programm ist sehr einfach und sollte schnell laufen.
-
-Später werden noch Bibliotheken aus Sub-Modulen verwendet,
-so dass der Compiler-Aufruf komplizierter wird.
-Daher liegt bei dem Projekt eine `cmake`-Datei, um das
-Bauen zu vereinfachen: [CMakeLists.txt](./CMakeLists.txt).
+Ein Problem existiert mit `cmake` leider:
+Es verwendet selbst `md-patcher`, um die Sourcen aus diesem Dokument
+zu extrahieren.
+Die generierten Sourcen sind zwar ebenfalls Teil dieses Repositories,
+aber ohne `md-patcher` kann `cmake` die Sourcen nicht bauen.
+Daher gibt es noch ein kleines Skript
+[bootstrap.sh](./bootstrap.sh),
+das aus den bestehenden Sourcen direkt `md-patcher` baut,
+ohne irgendwelche Abhängigkeiten zu prüfen.
 
 Zugegeben, das Programm macht noch nicht sehr viel.
 Aber wir können es jetzt Stück für Stück erweitern.

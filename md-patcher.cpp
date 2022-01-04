@@ -2,14 +2,28 @@
 #include <cassert>
 #line 79
 #include <string>
+#line 861
+
+static std::string link_in_line(const std::string &line) {
+	std::string got;
+	auto ci = line.find("](");
+	if (ci != std::string::npos) {
+		auto si = line.rfind('[', ci);
+		auto ei = line.find(')', ci);
+		if (si != std::string::npos && ei != std::string::npos) {
+			return line.substr(ci + 2, ei - ci - 2);
+		}
+	}
+	return got;
+}
 #line 484
 #include <iostream>
 #include "line-reader.h"
 
 static std::string line;
-#line 623
+#line 617
 
-#line 799
+#line 793
 static inline bool line_is_wildcard(
 	std::string &indent
 ) {
@@ -20,7 +34,7 @@ static inline bool line_is_wildcard(
 	indent = line.substr(0, idx);
 	return true;
 }
-#line 650
+#line 644
 static void change_cur_file_name(std::string &file) {
 	const auto last_idx { line.rfind('`') };
 	if (last_idx != std::string::npos && last_idx > 0) {
@@ -39,7 +53,7 @@ static void change_cur_file_name(std::string &file) {
 		}
 	}
 }
-#line 624
+#line 618
 static bool starts_with(
 	const std::string &base,
 	const std::string &prefix
@@ -158,7 +172,7 @@ std::string write_file_to_string(const File &f) {
 #include <map>
 
 static std::map<std::string, File> pool;
-#line 694
+#line 688
 
 template<typename IT>
 static IT insert_before(
@@ -174,7 +188,7 @@ static IT insert_before(
 
 // patch helpers
 
-#line 819
+#line 813
 template<typename IT>
 static inline bool do_wildcard(
 	const std::string &indent,
@@ -192,31 +206,31 @@ static inline bool do_wildcard(
 	}
 	return true;
 }
-#line 709
+#line 703
 static inline bool read_patch(File &file) {
 	if (! next()) { return false; }
 	auto cur { file.begin() };
 	std::string indent;
 	while (line != "```") {
 		// handle code
-#line 737
+#line 731
 		if (line_is_wildcard(indent)) {
 			// do wildcard
-#line 782
+#line 776
 			if (! do_wildcard(indent, file, cur)) {
 				return false;
 			}
-#line 739
+#line 733
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
 			++cur;
 		} else {
 			// insert line
-#line 763
+#line 757
 			cur = insert_before(line, cur, file);
-#line 744
+#line 738
 		}
-#line 715
+#line 709
 		if (! next()) {
 			err_pos() << "end of file in code block\n";
 			return false;
@@ -231,6 +245,13 @@ static inline bool read_patch(File &file) {
 #line 80
 static inline void run_tests() {
 	// unit-tests
+#line 846
+	{ // find file name in line
+		std::string l { "a line with [bla](bla.md) a link" };
+		std::string got { link_in_line(l) };
+		std::cerr << "got: " << got << "\n";
+		assert(got == "bla.md");
+	}
 #line 565
 	{ // reading lines with line macro
 		Line_Reader_Pool pool;
@@ -351,9 +372,7 @@ int main(int argc, const char *argv[]) {
 	reader.populate(argc, argv);
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {
-		if (starts_with(line, "```") &&
-			line.length() > 3
-		) {
+		if (starts_with(line, "```") && line.length() > 3) {
 			auto f { pool.find(cur_file) };
 			if (f == pool.end()) {
 				pool.insert({cur_file, File { cur_file }});
@@ -362,6 +381,12 @@ int main(int argc, const char *argv[]) {
 			if (! read_patch(f->second)) { break; }
 		} else {
 			change_cur_file_name(cur_file);
+#line 883
+			auto sub { link_in_line(line) };
+			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
+				reader.push_front(sub);
+			}
+#line 602
 			if (! next()) { break; }
 		}
 	}

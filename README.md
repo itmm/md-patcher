@@ -590,9 +590,7 @@ Damit kann das Lesen in der `main` Funktion in
 	reader.populate(argc, argv);
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {
-		if (starts_with(line, "```") &&
-			line.length() > 3
-		) {
+		if (starts_with(line, "```") && line.length() > 3) {
 			auto f { pool.find(cur_file) };
 			if (f == pool.end()) {
 				pool.insert({cur_file, File { cur_file }});
@@ -607,12 +605,8 @@ Damit kann das Lesen in der `main` Funktion in
 // ...
 ```
 
-Es werden so lange Zeilen gelesen,
-bis das Ende erreicht ist.
-Mehrere Markdown-Dateien
-(z.B. mehrere Kapitel eines Buches)
-können gemeinsam verarbeitet werden,
-wenn sie vorher mit `cat` zusammengefasst werden.
+Es werden so lange Zeilen gelesen, bis das Ende erreicht ist.
+Code-Blöcke ohne Syntax-Angabe werden nicht geparst.
 
 Die Funktion `starts_with` in `md-patcher.cpp` prüft einfach,
 ob ein String mit einer bestimmten Sequenz beginnt:
@@ -833,6 +827,63 @@ static inline bool do_wildcard(
 	}
 	return true;
 }
+// ...
+```
+
+## Includes verarbeiten
+
+Wenn Markdown-Dateien aus der aktuellen Datei heraus verlinkt werden,
+dann sollen diese auch mit prozessiert werden.
+Dadurch müssen nicht bei neuen Dateien ständig die Makefiles angepasst
+werden.
+Dafür soll es eine Hilfs-Funktion geben, die Links aus einer Zeile
+extrahiert:
+
+
+```c++
+// ...
+	// unit-tests
+	{ // find file name in line
+		std::string l { "a line with [bla](bla.md) a link" };
+		std::string got { link_in_line(l) };
+		std::cerr << "got: " << got << "\n";
+		assert(got == "bla.md");
+	}
+// ...
+```
+
+Aber diese Funktion gibt es noch nicht.
+Hier ist die Implementierung:
+
+```c++
+// ...
+#include <string>
+
+static std::string link_in_line(const std::string &line) {
+	std::string got;
+	auto ci = line.find("](");
+	if (ci != std::string::npos) {
+		auto si = line.rfind('[', ci);
+		auto ei = line.find(')', ci);
+		if (si != std::string::npos && ei != std::string::npos) {
+			return line.substr(ci + 2, ei - ci - 2);
+		}
+	}
+	return got;
+}
+// ...
+```
+
+Nun muss nur noch geprüft werden, ob ein passender Link existiert.
+Falls ja, wird die Datei ebenfalls bearbeitet.
+
+```c++
+// ...
+			change_cur_file_name(cur_file);
+			auto sub { link_in_line(line) };
+			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
+				reader.push_front(sub);
+			}
 // ...
 ```
 

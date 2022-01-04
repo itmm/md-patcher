@@ -167,7 +167,7 @@ static IT insert_before(
 ) {
 	auto p { cur - file.begin() };
 	file.insert(cur, Line {
-		ins, reader.pos().file_name(), reader.pos().line() - 1
+		ins, reader.pos().file_name(), reader.pos().line()
 	});
 	return file.begin() + (p + 1);
 }

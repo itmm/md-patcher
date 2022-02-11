@@ -383,6 +383,46 @@ int main(int argc, const char *argv[]) {
 #line 882
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
+				// normalize path
+#line 896
+				std::vector<std::string> parts;
+				std::string part;
+				if (!sub.empty() && sub[0] != '/') {
+					std::istringstream in { cur_file };
+					while (std::getline(in, part, '/')) {
+						if (part == ".") { continue; }
+						if (part == ".." && ! parts.empty()) {
+							parts.pop_back();
+							continue;
+						}
+						parts.push_back(part);
+					}
+					if (!parts.empty()) { parts.pop_back(); }
+				}
+				{
+					std::istringstream in { sub };
+					while (std::getline(in, part, '/')) {
+						if (part == ".") { continue; }
+						if (part == ".." && ! parts.empty()) {
+							parts.pop_back();
+							continue;
+						}
+						parts.push_back(part);
+					}
+				}
+				std::ostringstream out;
+				bool first { true };
+				for (auto part : parts) {
+					if (first) {
+						first = false;
+					} else {
+						out << '/';
+					}
+					out << part;
+				}
+				sub = out.str();
+
+#line 885
 				reader.push_front(sub);
 			}
 #line 602

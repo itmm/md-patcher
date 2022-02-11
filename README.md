@@ -881,11 +881,57 @@ Falls ja, wird die Datei ebenfalls bearbeitet.
 			change_cur_file_name(cur_file);
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
+				// normalize path
 				reader.push_front(sub);
 			}
 // ...
 ```
 
+Für die Normalisierung wird der Pfad erst einmal in seine Komponenten
+zerlegt:
+
+```c++
+// ...
+				// normalize path
+				std::vector<std::string> parts;
+				std::string part;
+				if (!sub.empty() && sub[0] != '/') {
+					std::istringstream in { cur_file };
+					while (std::getline(in, part, '/')) {
+						if (part == ".") { continue; }
+						if (part == ".." && ! parts.empty()) {
+							parts.pop_back();
+							continue;
+						}
+						parts.push_back(part);
+					}
+					if (!parts.empty()) { parts.pop_back(); }
+				}
+				{
+					std::istringstream in { sub };
+					while (std::getline(in, part, '/')) {
+						if (part == ".") { continue; }
+						if (part == ".." && ! parts.empty()) {
+							parts.pop_back();
+							continue;
+						}
+						parts.push_back(part);
+					}
+				}
+				std::ostringstream out;
+				bool first { true };
+				for (auto part : parts) {
+					if (first) {
+						first = false;
+					} else {
+						out << '/';
+					}
+					out << part;
+				}
+				sub = out.str();
+
+// ...
+```
 Damit ist der gesamte Quellcode beschrieben.
 
 Und aus dieser Markdown-Datei wurde mit `md-patcher`

@@ -892,41 +892,39 @@ zerlegt:
 
 ```c++
 // ...
+#include <sstream>
+
+void push_parts(std::vector<std::string> &parts, const std::string &path) {
+	if (path.empty()) { return; }
+
+	std::istringstream in { path };
+	std::string part;
+	while (std::getline(in, part, '/')) {
+		if (part == ".") { continue; }
+		if (part == ".." && ! parts.empty()) {
+			parts.pop_back();
+			continue;
+		}
+		parts.push_back(part);
+	}
+}
+
+// ...
 				// normalize path
 				std::vector<std::string> parts;
-				std::string part;
-				if (!sub.empty() && sub[0] != '/') {
-					std::istringstream in { cur_file };
-					while (std::getline(in, part, '/')) {
-						if (part == ".") { continue; }
-						if (part == ".." && ! parts.empty()) {
-							parts.pop_back();
-							continue;
-						}
-						parts.push_back(part);
-					}
+				if (! sub.empty() && sub[0] != '/') {
+					push_parts(parts, cur_file);
 					if (!parts.empty()) { parts.pop_back(); }
 				}
-				{
-					std::istringstream in { sub };
-					while (std::getline(in, part, '/')) {
-						if (part == ".") { continue; }
-						if (part == ".." && ! parts.empty()) {
-							parts.pop_back();
-							continue;
-						}
-						parts.push_back(part);
-					}
-				}
+				push_parts(parts, sub);
 				std::ostringstream out;
 				bool first { true };
 				for (auto part : parts) {
-					if (first) {
-						first = false;
-					} else {
+					if (! first) {
 						out << '/';
 					}
 					out << part;
+					first = false;
 				}
 				sub = out.str();
 

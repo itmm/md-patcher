@@ -125,11 +125,31 @@ void put_num(ST &s, int num) {
 template<typename ST>
 #line 274
 ST &write_file_to_stream(const File &f, ST &out) {
+#line 940
+	bool skipping { false };
+	std::string if_prefix { };
 #line 356
 	auto name { f.name() };
 	int line { 1 };
 #line 275
 	for (const auto &l : f) {
+#line 944
+		if (skipping) {
+			if (l.value() == if_prefix + "#endif") {
+				skipping = false;
+				continue;
+			}
+			continue;
+		}
+		auto idx { l.value().find("#if 0") };
+		if (idx != std::string::npos) {
+			skipping = true;
+			if_prefix = l.value().substr(0, idx);
+			for (char ch : if_prefix) {
+				if (ch > ' ') { skipping = false; break; }
+			}
+			if (skipping) { continue; }
+		}
 #line 359
 		if (line != l.number() || name != l.file()) {
 			// write line macro
@@ -153,6 +173,11 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		++line;
 #line 277
 	}
+#line 962
+	if (skipping) {
+		std::cerr << "open #if 0\n";
+	}
+#line 278
 	return out;
 }
 #line 451

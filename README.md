@@ -930,6 +930,43 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 
 // ...
 ```
+
+Als weitere Optimierung sollen keine Teile ausgegeben werden, die mit
+`#if 0` auskommentiert sind:
+
+```c++
+// ...
+ST &write_file_to_stream(const File &f, ST &out) {
+	bool skipping { false };
+	std::string if_prefix { };
+	// ...
+	for (const auto &l : f) {
+		if (skipping) {
+			if (l.value() == if_prefix + "#endif") {
+				skipping = false;
+				continue;
+			}
+			continue;
+		}
+		auto idx { l.value().find("#if 0") };
+		if (idx != std::string::npos) {
+			skipping = true;
+			if_prefix = l.value().substr(0, idx);
+			for (char ch : if_prefix) {
+				if (ch > ' ') { skipping = false; break; }
+			}
+			if (skipping) { continue; }
+		}
+		// ...
+	}
+	if (skipping) {
+		std::cerr << "open #if 0\n";
+	}
+	// ...
+}
+// ...
+```
+
 Damit ist der gesamte Quellcode beschrieben.
 
 Und aus dieser Markdown-Datei wurde mit `md-patcher`

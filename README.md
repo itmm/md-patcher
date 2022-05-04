@@ -200,7 +200,9 @@ class File {
 		using Lines = std::vector<Line>;
 		Lines lines_;
 	public:
-		File(const std::string &name): name_ { name } { }
+		File(const std::string &name): name_ { name } {
+			// init file attributes
+		}
 		const std::string &name() const { return name_; }
 		auto begin() { return lines_.begin(); }
 		auto begin() const { return lines_.begin(); }
@@ -400,6 +402,56 @@ void put_num(ST &s, int num) {
 	}
 }
 template<typename ST>
+// ...
+```
+Nicht jede Datei darf diese `#line` Anweisungen erhalten. Sie funktionieren
+nur bei C/C++-Dateien. Oder genauer: mit Dateien, welche die Endungen `.h`, `.c`
+oder `.cpp` haben. In `md-patcher.cpp` bekommt daher die File Klasse ein
+Attribut, um das prüfen zu können:
+
+```c++
+// ...
+class File {
+		bool with_lines_;
+		static bool with_lines(std::string name) {
+			std::string ext { get_extension(name) };
+			return ext == "h" || ext == "c" || ext == "cpp";
+		}
+		// ...
+	public:
+		bool with_lines() const { return with_lines_; }
+		// ...
+			// init file attributes
+			with_lines_ = with_lines(name);
+		// ...
+};
+// ...
+```
+
+Die zusätzliche Abfrage kann beim Schreiben der Zeilen-Makros berücksichtigt
+werden:
+
+```c++
+// ...
+			// write line macro
+			if (f.with_lines()) {
+			// ...
+			out.put('\n');
+			}
+// ...
+```
+
+Es fehlt nur noch die Methode, um die Extension aus einem Dateinamen zu
+extrahieren:
+
+```c++
+// ...
+#include <string>
+std::string get_extension(std::string path) {
+	auto got { path.rfind('.') };
+	if (got == std::string::npos) { return std::string { }; }
+	return path.substr(got + 1);
+}
 // ...
 ```
 

@@ -239,7 +239,7 @@ Dem entsprechend ist das Ergebnis leer.
 // ...
 	// unit-tests
 	{ // write emtpy file
-		const File f { "out.txt" };
+		const File f { "out.c" };
 		auto c { write_file_to_string(f) };
 		assert(c == "");
 	}
@@ -296,8 +296,8 @@ Der nächste Test haucht den Dateien Inhalt ein:
 	{ // copy simple file
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "out.txt", 1 });
-		it = f.insert(it, { "line 2", "out.txt", 2 });
+		it = f.insert(it, { "line 1", "out.c", 1 });
+		it = f.insert(it, { "line 2", "out.c", 2 });
 		auto c { write_file_to_string(f) };
 		assert(c == "line 1\nline 2\n");
 	}
@@ -340,8 +340,8 @@ In diesem Fall muss ein spezielles `#line` Makro generiert werden:
 	{ // non-continuous file
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "out.txt", 1 });
-		it = f.insert(it, { "line 2", "out.txt", 10 });
+		it = f.insert(it, { "line 1", "out.c", 1 });
+		it = f.insert(it, { "line 2", "out.c", 10 });
 		auto c { write_file_to_string(f) };
 		assert(c == "line 1\n#line 10\nline 2\n");
 	}
@@ -465,8 +465,8 @@ ist:
 	{ // not starting at one
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "out.txt", 4 });
-		it = f.insert(it, { "line 2", "out.txt", 5 });
+		it = f.insert(it, { "line 1", "out.c", 4 });
+		it = f.insert(it, { "line 2", "out.c", 5 });
 		auto c { write_file_to_string(f) };
 		assert(c == "#line 4\nline 1\nline 2\n");
 	}
@@ -482,10 +482,10 @@ Oder wenn sich die Datei ändert:
 	{ // different files
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "out.txt", 1 });
-		it = f.insert(it, { "line 2", "other.txt", 2 });
+		it = f.insert(it, { "line 1", "out.c", 1 });
+		it = f.insert(it, { "line 2", "other.c", 2 });
 		auto c { write_file_to_string(f) };
-		assert(c == "line 1\n#line 2 \"other.txt\"\nline 2\n");
+		assert(c == "line 1\n#line 2 \"other.c\"\nline 2\n");
 	}
 // ...
 ```

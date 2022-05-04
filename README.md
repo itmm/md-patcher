@@ -294,7 +294,7 @@ Der nächste Test haucht den Dateien Inhalt ein:
 // ...
 	// unit-tests
 	{ // copy simple file
-		File f { "out.txt" };
+		File f { "out.c" };
 		auto it = f.begin();
 		it = f.insert(it, { "line 1", "out.txt", 1 });
 		it = f.insert(it, { "line 2", "out.txt", 2 });
@@ -338,7 +338,7 @@ In diesem Fall muss ein spezielles `#line` Makro generiert werden:
 // ...
 	// unit-tests
 	{ // non-continuous file
-		File f { "out.txt" };
+		File f { "out.c" };
 		auto it = f.begin();
 		it = f.insert(it, { "line 1", "out.txt", 1 });
 		it = f.insert(it, { "line 2", "out.txt", 10 });
@@ -463,7 +463,7 @@ ist:
 // ...
 	// unit-tests
 	{ // not starting at one
-		File f { "out.txt" };
+		File f { "out.c" };
 		auto it = f.begin();
 		it = f.insert(it, { "line 1", "out.txt", 4 });
 		it = f.insert(it, { "line 2", "out.txt", 5 });
@@ -480,7 +480,7 @@ Oder wenn sich die Datei ändert:
 // ...
 	// unit-tests
 	{ // different files
-		File f { "out.txt" };
+		File f { "out.c" };
 		auto it = f.begin();
 		it = f.insert(it, { "line 1", "out.txt", 1 });
 		it = f.insert(it, { "line 2", "other.txt", 2 });

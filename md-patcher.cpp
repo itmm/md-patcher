@@ -2,7 +2,7 @@
 #include <cassert>
 #line 79
 #include <string>
-#line 912
+#line 921
 
 static std::string link_in_line(const std::string &line) {
 	std::string got;
@@ -23,7 +23,7 @@ static std::string link_in_line(const std::string &line) {
 static std::string line;
 #line 669
 
-#line 845
+#line 854
 static inline bool line_is_wildcard(
 	std::string &indent
 ) {
@@ -34,23 +34,19 @@ static inline bool line_is_wildcard(
 	indent = line.substr(0, idx);
 	return true;
 }
-#line 696
+#line 709
 static void change_cur_file_name(std::string &file) {
-	const auto last_idx { line.rfind('`') };
-	if (last_idx != std::string::npos && last_idx > 0) {
-		const auto start_idx { line.rfind(
-			'`', last_idx - 1
-		) + 1 };
-		if (start_idx != std::string::npos &&
-			start_idx < last_idx
-		) {
-			auto got { line.substr(
-				start_idx, last_idx - start_idx
-			) };
-			if (got.find('.') != std::string::npos || got.find('/') != std::string::npos) {
-				file = got;
-			}
+	size_t start { 0 };
+	for (;;) {
+		auto begin { line.find('`', start) };
+		if (begin == std::string::npos) { break; }
+		auto end { line.find('`', begin + 1) };
+		if (end == std::string::npos) { break; }
+		auto got { line.substr(begin + 1, end - begin - 1) };
+		if (got.find('.') != std::string::npos || got.find('/') != std::string::npos) {
+			file = got;
 		}
+		start = end + 1;
 	}
 }
 #line 670
@@ -146,7 +142,7 @@ void put_num(ST &s, int num) {
 template<typename ST>
 #line 276
 ST &write_file_to_stream(const File &f, ST &out) {
-#line 992
+#line 1001
 	bool skipping { false };
 	std::string if_prefix { };
 #line 358
@@ -154,7 +150,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 	int line { 1 };
 #line 277
 	for (const auto &l : f) {
-#line 996
+#line 1005
 		if (skipping) {
 			if (l.value() == if_prefix + "#endif") {
 				skipping = false;
@@ -199,7 +195,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		++line;
 #line 279
 	}
-#line 1014
+#line 1023
 	if (skipping) {
 		std::cerr << "open #if 0\n";
 	}
@@ -215,7 +211,7 @@ inline void write_file(const File &f) {
 }
 #line 258
 #include <sstream>
-#line 948
+#line 957
 
 void push_parts(std::vector<std::string> &parts, const std::string &path) {
 	if (path.empty()) { return; }
@@ -241,7 +237,7 @@ std::string write_file_to_string(const File &f) {
 #include <map>
 
 static std::map<std::string, File> pool;
-#line 740
+#line 749
 
 template<typename IT>
 static IT insert_before(
@@ -257,7 +253,7 @@ static IT insert_before(
 
 // patch helpers
 
-#line 865
+#line 874
 template<typename IT>
 static inline bool do_wildcard(
 	const std::string &indent,
@@ -275,31 +271,31 @@ static inline bool do_wildcard(
 	}
 	return true;
 }
-#line 755
+#line 764
 static inline bool read_patch(File &file) {
 	if (! next()) { return false; }
 	auto cur { file.begin() };
 	std::string indent;
 	while (line != "```") {
 		// handle code
-#line 783
+#line 792
 		if (line_is_wildcard(indent)) {
 			// do wildcard
-#line 828
+#line 837
 			if (! do_wildcard(indent, file, cur)) {
 				return false;
 			}
-#line 785
+#line 794
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
 			++cur;
 		} else {
 			// insert line
-#line 809
+#line 818
 			cur = insert_before(line, cur, file);
-#line 790
+#line 799
 		}
-#line 761
+#line 770
 		if (! next()) {
 			err_pos() << "end of file in code block\n";
 			return false;
@@ -314,11 +310,18 @@ static inline bool read_patch(File &file) {
 #line 80
 static inline void run_tests() {
 	// unit-tests
-#line 898
+#line 907
 	{ // find file name in line
 		std::string l { "a line with [bla](bla.md) a link" };
 		std::string got { link_in_line(l) };
 		assert(got == "bla.md");
+	}
+#line 696
+	{ // multiple filename candidates
+		line = "xx `first` xx `2nd.x` xx `` xx `last` xx";
+		std::string f { "bla" };
+		change_cur_file_name(f);
+		assert(f == "2nd.x");
 	}
 #line 617
 	{ // reading lines with line macro
@@ -449,11 +452,11 @@ int main(int argc, const char *argv[]) {
 			if (! read_patch(f->second)) { break; }
 		} else {
 			change_cur_file_name(cur_file);
-#line 934
+#line 943
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
 				// normalize path
-#line 966
+#line 975
 				std::vector<std::string> parts;
 				if (! sub.empty() && sub[0] != '/') {
 					push_parts(parts, cur_file);
@@ -471,7 +474,7 @@ int main(int argc, const char *argv[]) {
 				}
 				sub = out.str();
 
-#line 937
+#line 946
 				reader.push_front(sub);
 			}
 #line 654

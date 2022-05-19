@@ -686,29 +686,38 @@ Ebenfalls recht einfach kann ein neuer
 Dateiname ermittelt werden.
 Es wird in der aktuellen Zeile geprüft,
 ob zwei Backticks vorkommen.
+
 Der String zwischen den letzten zwei Backticks ist dann
 der aktuelle Dateiname:
+
+```c++
+// ...
+	// unit-tests
+	{ // multiple filename candidates
+		line = "xx `first` xx `2nd.x` xx `` xx `last` xx";
+		std::string f { "bla" };
+		change_cur_file_name(f);
+		assert(f == "2nd.x");
+	}
+// ...
+```
 
 ```c++
 // ...
 static std::string line;
 
 static void change_cur_file_name(std::string &file) {
-	const auto last_idx { line.rfind('`') };
-	if (last_idx != std::string::npos && last_idx > 0) {
-		const auto start_idx { line.rfind(
-			'`', last_idx - 1
-		) + 1 };
-		if (start_idx != std::string::npos &&
-			start_idx < last_idx
-		) {
-			auto got { line.substr(
-				start_idx, last_idx - start_idx
-			) };
-			if (got.find('.') != std::string::npos || got.find('/') != std::string::npos) {
-				file = got;
-			}
+	size_t start { 0 };
+	for (;;) {
+		auto begin { line.find('`', start) };
+		if (begin == std::string::npos) { break; }
+		auto end { line.find('`', begin + 1) };
+		if (end == std::string::npos) { break; }
+		auto got { line.substr(begin + 1, end - begin - 1) };
+		if (got.find('.') != std::string::npos || got.find('/') != std::string::npos) {
+			file = got;
 		}
+		start = end + 1;
 	}
 }
 // ...

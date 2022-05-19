@@ -686,9 +686,11 @@ Ebenfalls recht einfach kann ein neuer
 Dateiname ermittelt werden.
 Es wird in der aktuellen Zeile geprüft,
 ob zwei Backticks vorkommen.
+Wenn zwischen zwei Backticks mindestens ein Punkt oder ein Slash
+vorkommt, dann ist dies ein Kandidat für einen Dateinamen.
+Der letzte Kandidat einer Zeile wird als neuer Dateiname verwendet.
 
-Der String zwischen den letzten zwei Backticks ist dann
-der aktuelle Dateiname:
+Folgender Unit-Test macht dies deutlich:
 
 ```c++
 // ...
@@ -702,6 +704,9 @@ der aktuelle Dateiname:
 // ...
 ```
 
+Die Umsetzung geht einfach die Kandidaten durch. Der letzte Kandidat
+steht nach Beenden der Funktion im Argument.
+
 ```c++
 // ...
 static std::string line;
@@ -714,7 +719,10 @@ static void change_cur_file_name(std::string &file) {
 		auto end { line.find('`', begin + 1) };
 		if (end == std::string::npos) { break; }
 		auto got { line.substr(begin + 1, end - begin - 1) };
-		if (got.find('.') != std::string::npos || got.find('/') != std::string::npos) {
+		if (
+			got.find('.') != std::string::npos ||
+			got.find('/') != std::string::npos
+		) {
 			file = got;
 		}
 		start = end + 1;
@@ -941,7 +949,10 @@ Falls ja, wird die Datei ebenfalls bearbeitet.
 // ...
 			change_cur_file_name(cur_file);
 			auto sub { link_in_line(line) };
-			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
+			if (
+				sub.size() > 3 &&
+				sub.rfind(".md") == sub.size() - 3
+			) {
 				// normalize path
 				reader.push_front(sub);
 			}
@@ -975,7 +986,9 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 				std::vector<std::string> parts;
 				if (! sub.empty() && sub[0] != '/') {
 					push_parts(parts, cur_file);
-					if (!parts.empty()) { parts.pop_back(); }
+					if (!parts.empty()) {
+						parts.pop_back();
+					}
 				}
 				push_parts(parts, sub);
 				std::ostringstream out;

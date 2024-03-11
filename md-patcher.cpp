@@ -147,7 +147,7 @@ template<typename ST>
 ST &write_file_to_stream(const File &f, ST &out) {
 #line 1014
 	bool skipping { false };
-	std::string if_prefix { };
+	std::string end_line { };
 #line 358
 	auto name { f.name() };
 	int line { 1 };
@@ -155,7 +155,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 	for (const auto &l : f) {
 #line 1018
 		if (skipping) {
-			if (starts_with(l.value(), if_prefix + "#endif")) {
+			if (l.value() == end_line) {
 				skipping = false;
 				continue;
 			}
@@ -163,12 +163,18 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		}
 		auto idx { l.value().find("#if 0") };
 		if (idx != std::string::npos) {
-			skipping = true;
-			if_prefix = l.value().substr(0, idx);
-			for (char ch : if_prefix) {
-				if (ch > ' ') { skipping = false; break; }
-			}
-			if (skipping) { continue; }
+            bool contains_nonspace { false };
+            for (auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i) {
+                if (*i > ' ') {
+                    contains_nonspace = true; break;
+                }
+            }
+			if (! contains_nonspace) {
+                skipping = true;
+                end_line = l.value();
+                end_line.replace(idx, 5, "#endif");
+				continue;
+            }
 		}
 #line 361
 		if (line != l.number() || name != l.file()) {
@@ -198,7 +204,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		++line;
 #line 279
 	}
-#line 1036
+#line 1042
 	if (skipping) {
 		std::cerr << "open #if 0\n";
 	}

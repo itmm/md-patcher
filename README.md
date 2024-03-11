@@ -1012,11 +1012,11 @@ Als weitere Optimierung sollen keine Teile ausgegeben werden, die mit
 // ...
 ST &write_file_to_stream(const File &f, ST &out) {
 	bool skipping { false };
-	std::string if_prefix { };
+	std::string end_line { };
 	// ...
 	for (const auto &l : f) {
 		if (skipping) {
-			if (starts_with(l.value(), if_prefix + "#endif")) {
+			if (l.value() == end_line) {
 				skipping = false;
 				continue;
 			}
@@ -1024,12 +1024,18 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		}
 		auto idx { l.value().find("#if 0") };
 		if (idx != std::string::npos) {
-			skipping = true;
-			if_prefix = l.value().substr(0, idx);
-			for (char ch : if_prefix) {
-				if (ch > ' ') { skipping = false; break; }
-			}
-			if (skipping) { continue; }
+            bool contains_nonspace { false };
+            for (auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i) {
+                if (*i > ' ') {
+                    contains_nonspace = true; break;
+                }
+            }
+			if (! contains_nonspace) {
+                skipping = true;
+                end_line = l.value();
+                end_line.replace(idx, 5, "#endif");
+				continue;
+            }
 		}
 		// ...
 	}

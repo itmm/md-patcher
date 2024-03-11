@@ -155,7 +155,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 	for (const auto &l : f) {
 #line 1018
 		if (skipping) {
-			if (l.value() == if_prefix + "#endif") {
+			if (starts_with(l.value(), if_prefix + "#endif")) {
 				skipping = false;
 				continue;
 			}

@@ -447,8 +447,9 @@ int main(int argc, const char *argv[]) {
 #line 84
 	run_tests();
 #line 1051
-	if (argc == 2 && argv[1] == std::string { "--raw" }) {
+	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
 		write_raw = true;
+		--argc; ++argv;
 	}
 #line 85
 	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {

@@ -1048,8 +1048,9 @@ ST &write_file_to_stream(const File &f, ST &out) {
 }
 // ...
 	run_tests();
-	if (argc == 2 && argv[1] == std::string { "--raw" }) {
+	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
 		write_raw = true;
+		--argc; ++argv;
 	}
 // ...
 ```

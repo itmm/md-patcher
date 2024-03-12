@@ -1009,6 +1009,7 @@ Als weitere Optimierung sollen keine Teile ausgegeben werden, die mit
 `#if 0` auskommentiert sind:
 
 ```c++
+bool write_raw { false };
 // ...
 ST &write_file_to_stream(const File &f, ST &out) {
 	bool skipping { false };
@@ -1023,7 +1024,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 			continue;
 		}
 		auto idx { l.value().find("#if 0") };
-		if (idx != std::string::npos) {
+		if (!write_raw && idx != std::string::npos) {
             bool contains_nonspace { false };
             for (auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i) {
                 if (*i > ' ') {
@@ -1041,9 +1042,15 @@ ST &write_file_to_stream(const File &f, ST &out) {
 	}
 	if (skipping) {
 		std::cerr << "open #if 0\n";
+		std::exit(EXIT_FAILURE);
 	}
 	// ...
 }
+// ...
+	run_tests();
+	if (argc == 2 && argv[1] == std::string { "--raw" }) {
+		write_raw = true;
+	}
 // ...
 ```
 

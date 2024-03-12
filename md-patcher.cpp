@@ -1,4 +1,6 @@
-#line 138 "README.md"
+#line 1012 "README.md"
+bool write_raw { false };
+#line 138
 #include <cassert>
 #line 79
 #include <string>
@@ -145,7 +147,7 @@ void put_num(ST &s, int num) {
 template<typename ST>
 #line 276
 ST &write_file_to_stream(const File &f, ST &out) {
-#line 1014
+#line 1015
 	bool skipping { false };
 	std::string end_line { };
 #line 358
@@ -153,7 +155,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 	int line { 1 };
 #line 277
 	for (const auto &l : f) {
-#line 1018
+#line 1019
 		if (skipping) {
 			if (l.value() == end_line) {
 				skipping = false;
@@ -162,7 +164,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 			continue;
 		}
 		auto idx { l.value().find("#if 0") };
-		if (idx != std::string::npos) {
+		if (!write_raw && idx != std::string::npos) {
             bool contains_nonspace { false };
             for (auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i) {
                 if (*i > ' ') {
@@ -204,9 +206,10 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		++line;
 #line 279
 	}
-#line 1042
+#line 1043
 	if (skipping) {
 		std::cerr << "open #if 0\n";
+		std::exit(EXIT_FAILURE);
 	}
 #line 280
 	return out;
@@ -443,6 +446,11 @@ static inline void run_tests() {
 int main(int argc, const char *argv[]) {
 #line 84
 	run_tests();
+#line 1051
+	if (argc == 2 && argv[1] == std::string { "--raw" }) {
+		write_raw = true;
+	}
+#line 85
 	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
 		return 0;
 	}

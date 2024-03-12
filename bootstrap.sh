@@ -1,4 +1,10 @@
 #!/bin/bash
-g++ -std=c++17 -I line-reader -I lazy-write md-patcher.cpp lazy-write/lazy-write.cpp line-reader/line-reader.cpp -lstdc++fs -o mdp
-
-# TODO: add require
+g++ -std=c++17 \
+  -I assert-problems/include \
+  -I line-reader/include \
+  -I lazy-write/include \
+  md-patcher.cpp \
+  assert-problems/solid/require.cpp \
+  lazy-write/lazy-write.cpp \
+  line-reader/line-reader.cpp \
+  -o mdp

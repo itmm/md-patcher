@@ -1,33 +1,26 @@
 # md-patcher
 
-Ein Programm, um aus Code-Fragmenten einer Markdown-Datei
+`md-patcher` ist ein Programm, um aus Code-Fragmenten einer Markdown-Datei
 kompilierbare Programme zu extrahieren.
 
 ## Genereller Aufbau
 
-`md-patcher` ist sehr einfach gehalten.
-Es liest Markdown-Dateien und probiert,
-darin enthaltene Code-Fragmente zu Dateien zusammenzusetzen.
-Diese werden dann herausgeschrieben.
-Den Datei-Namen nimmt `md-patcher` aus den normalen
-Text-Blöcken:
-Jedes Inline-Codefragment
-(das mindestens einen Slash oder Punkt enthält)
-ändert den Namen der aktuellen Datei.
-Bevor ein relevantes Code-Fragment kommt,
-sollte die Datei also zum Beispiel mit `md-patcher.cpp`
-auf einen sinnvollen Namen gesetzt werden.
-Achtung: Das Programm prüft nicht, ob der Name sinnvoll ist.
-Zur Sicherheit sollte immer direkt vor einem Code-Block
-der Name der Datei angegeben werden.
-Dies erleichtert zusätzlich dem Leser,
-den Zusammenhang der Code-Blöcke im Kopf zu behalten.
+Ich `md-patcher` habe einfach gehalten. Es liest Markdown-Dateien und probiert,
+darin enthaltene Code-Fragmente zu vollständigen Source-Code Dateien
+zusammenzusetzen. Es schreibt diese dann heraus. `md-patcher` nimmt den
+Datei-Namen aus normalen Text-Blöcken: Jedes Inline-Codefragment das mindestens
+einen Slash oder Punkt enthält, ändert den Namen der aktuellen Datei.
 
-Die Datei muss nicht auf einen Schlag angegeben werden.
-Es können Fragmente angegeben werden,
-die im Laufe des Dokumentes erweitert werden können.
-Ein Anfang von `md-patcher.cpp` könnte zum Beispiel so
-aussehen:
+Wenn ich mir unsicher bin, gebe ich direkt vor einem Code-Block den Name der
+Datei als Inline-Codefragment an. Dadurch fällt es auch dem Leser leichter,
+das Fragment der richtigen Datei zuzuordnen.
+
+**Achtung**: Das Programm prüft nicht, ob der Name sinnvoll ist.
+
+Ich muss Dateien nicht auf einen Schlag eingeben. Ich kann Fragmente
+im Laufe der Zeit erweitern. So kann ich mich von der groben Strukutur zu den
+Feinheiten vortasten und habe dabei stets ein baubares Programm.
+Ich habe mit `md-patcher.cpp` so angefangen:
 
 ```c++
 int main(int argc, const char *argv[]) {
@@ -37,36 +30,34 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-Das Programm ist in C++ geschrieben.
-Genauer: dem C++17 Standard.
-Ich denke, diese Sprache erlaubt eine vernünftige Balance
-zwischen Kompaktheit und Ausführungsgeschwindigkeit.
-Im Gegensatz zu C gibt es schon mächtige Werkzeuge für den
-Umgang mit Containern in der Standard-Bibliothek.
-Und trotzdem ist das erzeugte Programm schnell und hat wenig externe
-Abhängigkeiten..
+Ich habe aas Programm in C++ geschrieben. Genauer: im C++17 Standard. Ich denke,
+diese Sprache erlaubt eine vernünftige Balance zwischen Kompaktheit und
+Ausführungsgeschwindigkeit. Für zusätzliche Robustheit, verwende ich einzelne
+Pakete aus dem `solid`-Namensraum.
 
-Das gerade angegebene Fragment definiert nur eine Funktion `main`.
-Dies ist die zentrale Funktion,
-die aufgerufen wird,
-wenn wir das Programm starten.
-Die Zeichen `//` leiten einen Kommentar ein.
-Alles was hinter den beiden Zeichen steht,
-wird vom Compiler ignoriert.
+Im Gegensatz zu C gibt es bei C++ schon mächtige Werkzeuge für den Umgang mit
+Containern in der Standard-Bibliothek. Und trotzdem ist das erzeugte Programm
+schnell und hat wenig externe Abhängigkeiten.
 
-Das Programm kann mit `cmake` gebaut werden.
-Die entsprechende Konfigurationsdatei liegt in
-[CMakeLists.txt](./CMakeLists.txt).
+Das gerade angegebene Fragment definiert nur eine Funktion `main`. Dies ist die
+zentrale Funktion, die aufgerufen wird, wenn wir das Programm starten. Die
+Zeichen `//` leiten einen Kommentar ein. Alles was hinter den beiden
+Zeichen steht, wird vom Compiler ignoriert.
 
-Ein Problem existiert mit `cmake` leider:
-Es verwendet selbst `md-patcher`, um die Sourcen aus diesem Dokument
-zu extrahieren.
-Die generierten Sourcen sind zwar ebenfalls Teil dieses Repositories,
-aber ohne `md-patcher` kann `cmake` die Sourcen nicht bauen.
-Daher gibt es noch ein kleines Skript
-[bootstrap.sh](./bootstrap.sh),
-das aus den bestehenden Sourcen direkt `md-patcher` baut,
-ohne irgendwelche Abhängigkeiten zu prüfen.
+Das Programm habe ich mit [CMake](https://www.cmake.org) gebaut. Die
+entsprechende Konfigurationsdatei liegt in [CMakeLists.txt](./CMakeLists.txt).
+
+Es gibt leider ein Problem mit `CMake`: `CMake` verwendet selbst `md-patcher`,
+um die Sourcen aus diesem Dokument zu extrahieren. Ich habe die generierten
+Sourcen ebenfalls im Repository abgelegt, aber ohne `md-patcher` kann `CMake`
+die Sourcen nicht bauen. Daher habe ich noch ein kleines Skript
+[bootstrap.sh](./bootstrap.sh) hinzugefügt, das aus den bestehenden Sourcen
+direkt `md-patcher` baut, ohne irgendwelche Abhängigkeiten zu prüfen.
+Damit können Sie eine Version vom `md-patcher` bauen, mit dem Sie dann einen
+`CMake`-Build durchführen können (der den Source aus diesem Dokument
+extrahiert).
+
+<!-- WORKING HERE -->
 
 Zugegeben, das Programm macht noch nicht sehr viel.
 Aber wir können es jetzt Stück für Stück erweitern.

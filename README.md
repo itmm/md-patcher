@@ -472,7 +472,7 @@ wirklich verändern.
 ST &write_file_to_stream(const File &f, ST &out) {
 	// ...
 }
-#include "lazy-write.h"
+#include "lazy-write/lazy-write.h"
 
 inline void write_file(const File &f) {
 	Lazy_Write out { f.name() };
@@ -506,7 +506,7 @@ einander abgearbeitet werden.
 // ...
 #include <string>
 #include <iostream>
-#include "line-reader.h"
+#include "line-reader/line-reader.h"
 
 static std::string line;
 static Line_Reader_Pool reader;

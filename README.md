@@ -135,17 +135,23 @@ Anweisungen zu generieren.
 Definieren wir zuerst einen Test in `md-patcher.cpp`:
 
 ```c++
-#include <cassert>
+#include "solid/require.h"
 // ...
 	// unit-tests
 	{ // check Line attributes
 		const Line line { "some-line", "some-file", 42 };
-		assert(line.value() == "some-line");
-		assert(line.file() == "some-file");
-		assert(line.number() == 42);
+		require(line.value() == "some-line");
+		require(line.file() == "some-file");
+		require(line.number() == 42);
 	}
 // ...
 ```
+
+Ich verwende das Makro `require` aus meinem Projekt
+[assert-problems](https://github.com/itmm/assert-problems) anstatt von `assert`.
+`require` funktioniert auch in Release-Versionen, hat eine kompaktere Ausgabe
+und kann in Tests abgefangen werden. Es eignet sich sowohl für Unit-Tests, als
+auch für die Erkennung von fehlerhaften Situationen.
 
 Hier die entsprechende Struktur:
 
@@ -180,8 +186,8 @@ Eine Ausgabe-Datei hat selber auch einen Namen und beliebig viele Zeilen:
 	// unit-tests
 	{ // check empty file
 		File f { "out.cpp" };
-		assert(f.name() == "out.cpp");
-		assert(f.begin() == f.end());
+		require(f.name() == "out.cpp");
+		require(f.begin() == f.end());
 	}
 // ...
 ```
@@ -241,7 +247,7 @@ Dem entsprechend ist das Ergebnis leer.
 	{ // write emtpy file
 		const File f { "out.c" };
 		auto c { write_file_to_string(f) };
-		assert(c == "");
+		require(c == "");
 	}
 // ...
 ```
@@ -299,7 +305,7 @@ Der nächste Test haucht den Dateien Inhalt ein:
 		it = f.insert(it, { "line 1", "out.c", 1 });
 		it = f.insert(it, { "line 2", "out.c", 2 });
 		auto c { write_file_to_string(f) };
-		assert(c == "line 1\nline 2\n");
+		require(c == "line 1\nline 2\n");
 	}
 // ...
 ```
@@ -343,7 +349,7 @@ In diesem Fall muss ein spezielles `#line` Makro generiert werden:
 		it = f.insert(it, { "line 1", "out.c", 1 });
 		it = f.insert(it, { "line 2", "out.c", 10 });
 		auto c { write_file_to_string(f) };
-		assert(c == "line 1\n#line 10\nline 2\n");
+		require(c == "line 1\n#line 10\nline 2\n");
 	}
 // ...
 ```
@@ -468,7 +474,7 @@ ist:
 		it = f.insert(it, { "line 1", "out.c", 4 });
 		it = f.insert(it, { "line 2", "out.c", 5 });
 		auto c { write_file_to_string(f) };
-		assert(c == "#line 4\nline 1\nline 2\n");
+		require(c == "#line 4\nline 1\nline 2\n");
 	}
 // ...
 ```
@@ -485,7 +491,7 @@ Oder wenn sich die Datei ändert:
 		it = f.insert(it, { "line 1", "out.c", 1 });
 		it = f.insert(it, { "line 2", "other.c", 2 });
 		auto c { write_file_to_string(f) };
-		assert(c == "line 1\n#line 2 \"other.c\"\nline 2\n");
+		require(c == "line 1\n#line 2 \"other.c\"\nline 2\n");
 	}
 // ...
 ```
@@ -570,15 +576,15 @@ werden.
 		std::istringstream in { "abc\ndef\n" };
 		pool.push_back("x", in);
 		std::string line;
-		assert(pool.next(line));
-		assert(line == "abc");
-		assert(pool.pos().file_name() == "x");
-		assert(pool.pos().line() == 1);
-		assert(pool.next(line));
-		assert(line == "def");
-		assert(pool.pos().file_name() == "x");
-		assert(pool.pos().line() == 2);
-		assert(! pool.next(line));
+		require(pool.next(line));
+		require(line == "abc");
+		require(pool.pos().file_name() == "x");
+		require(pool.pos().line() == 1);
+		require(pool.next(line));
+		require(line == "def");
+		require(pool.pos().file_name() == "x");
+		require(pool.pos().line() == 2);
+		require(! pool.next(line));
 	}
 // ...
 ```
@@ -596,15 +602,15 @@ Es können auch mehrere Dateien auf einmal gelesen werden:
 		pool.push_back("x", in1);
 		pool.push_back("y", in2);
 		std::string line;
-		assert(pool.next(line));
-		assert(line == "abc");
-		assert(pool.pos().file_name() == "x");
-		assert(pool.pos().line() == 1);
-		assert(pool.next(line));
-		assert(line == "def");
-		assert(pool.pos().file_name() == "y");
-		assert(pool.pos().line() == 1);
-		assert(! pool.next(line));
+		require(pool.next(line));
+		require(line == "abc");
+		require(pool.pos().file_name() == "x");
+		require(pool.pos().line() == 1);
+		require(pool.next(line));
+		require(line == "def");
+		require(pool.pos().file_name() == "y");
+		require(pool.pos().line() == 1);
+		require(! pool.next(line));
 	}
 // ...
 ```
@@ -619,15 +625,15 @@ Es können auch mehrere Dateien auf einmal gelesen werden:
 		std::istringstream in { "abc\n#line 3 \"z\"\ndef" };
 		pool.push_back("x", in);
 		std::string line;
-		assert(pool.next(line));
-		assert(line == "abc");
-		assert(pool.pos().file_name() == "x");
-		assert(pool.pos().line() == 1);
-		assert(pool.next(line));
-		assert(line == "def");
-		assert(pool.pos().file_name() == "z");
-		assert(pool.pos().line() == 3);
-		assert(! pool.next(line));
+		require(pool.next(line));
+		require(line == "abc");
+		require(pool.pos().file_name() == "x");
+		require(pool.pos().line() == 1);
+		require(pool.next(line));
+		require(line == "def");
+		require(pool.pos().file_name() == "z");
+		require(pool.pos().line() == 3);
+		require(! pool.next(line));
 	}
 // ...
 ```
@@ -699,7 +705,7 @@ Folgender Unit-Test macht dies deutlich:
 		line = "xx `first` xx `2nd.x` xx `` xx `last` xx";
 		std::string f { "bla" };
 		change_cur_file_name(f);
-		assert(f == "2nd.x");
+		require(f == "2nd.x");
 	}
 // ...
 ```
@@ -915,7 +921,7 @@ extrahiert:
 	{ // find file name in line
 		std::string l { "a line with [bla](bla.md) a link" };
 		std::string got { link_in_line(l) };
-		assert(got == "bla.md");
+		require(got == "bla.md");
 	}
 // ...
 ```

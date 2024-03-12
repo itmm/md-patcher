@@ -4,6 +4,6 @@
 [submodule "lazy-write"]
 	path = lazy-write
 	url = https://github.com/itmm/lazy-write.git
-[submodule "assert-problems"]
-	path = assert-problems
-	url = https://github.com/itmm/assert-problems.git
+[submodule "solid-require"]
+	path = solid-require
+	url = https://github.com/itmm/solid-require.git

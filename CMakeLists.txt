@@ -4,7 +4,7 @@ project(mdp)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(assert-problems)
+add_subdirectory(solid-require)
 add_subdirectory(line-reader)
 add_subdirectory(lazy-write)
 

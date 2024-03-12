@@ -26,7 +26,7 @@ Ich habe mit `md-patcher.cpp` so angefangen:
 int main(int argc, const char *argv[]) {
 	// parse input
 	// write output
-	return 0;
+	return EXIT_SUCCESS;
 }
 ```
 
@@ -57,14 +57,11 @@ Damit können Sie eine Version vom `md-patcher` bauen, mit dem Sie dann einen
 `CMake`-Build durchführen können (der den Source aus diesem Dokument
 extrahiert).
 
-<!-- WORKING HERE -->
-
-Zugegeben, das Programm macht noch nicht sehr viel.
-Aber wir können es jetzt Stück für Stück erweitern.
-Zuerst wird erst einmal Code integriert, um Unit-Tests auszuführen.
-Damit haben wir die Möglichkeit, das Programm nach TDD zu entwickeln.
-Dazu gibt es eine Funktion `run_tests` in `md-patcher.cpp`,
-die bei jedem Start ausgeführt wird:
+Zugegeben, das Programm macht noch nicht sehr viel. Aber ich kann es jetzt
+Stück für Stück erweitern. Zuerst füge ich Code hinzu, um Unit-Tests
+auszuführen. Damit habe ich die Möglichkeit, das Programm nach TDD zu
+entwickeln. Diese Tests kapsel ich in der Funktion `run_tests` in
+`md-patcher.cpp`, die ich bei jedem Start ausführe:
 
 ```c++
 #include <string>
@@ -80,23 +77,19 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-Wenn nur die Unit-Tests ausgeführt werden sollen, so kann das mit dem
-Kommandozeilen-Argument `--run-only-tests` angegeben werden.
+Mit dem Kommandozeilen-Argument `--run-only-tests` kann ich angeben, dass nur
+die Unit-Tests ausgeführt werden sollen.
 
-Wichtig sind die Zeilen mit dem Füll-Kommentar `// ...`.
-Genau diese Zeilen erkennt `md-patcher` und fügt das bisher
-bestehende Programm ein.
+Wichtig sind die Zeilen mit dem Füll-Kommentar `// ...`. Genau diese Zeilen
+erkennt `md-patcher` und fügt das bisher bestehende Programm ein.
 
-`md-patcher` probiert,
-das bestehende Programm mit dem Fragment zusammenzuführen.
-Dabei nutzt es zum einen identische Zeilen als
-Verankerung der beiden Teile miteinander.
-Zum anderen wird mit den Füll-Kommentaren angezeigt,
-an welcher Stelle im Fragment der bestehende Code
-eingesetzt werden kann.
+`md-patcher` probiert, das bestehende Programm mit dem Fragment
+zusammenzuführen. Dabei nutzt es zum einen identische Zeilen als Verankerung
+der beiden Teile miteinander. Zum anderen wird mit den Füll-Kommentaren
+angezeigt, an welcher Stelle im Fragment der bestehende Code eingesetzt werden
+kann.
 
-Der resultierende Code
-(dessen Ausgabe jetzt nach `/dev/null` geschrieben wird),
+Der resultierende Code (dessen Ausgabe jetzt nach `/dev/null` geschrieben wird),
 ist also:
 
 ```c++
@@ -114,16 +107,14 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-Wenn Füll-Kommentare mit Tabs eingerückt sind,
-dann können sie nur durch Code ersetzt werden,
-der ebenfalls mindestens so tief eingerückt ist.
+Wenn Füll-Kommentare mit Tabs eingerückt sind, dann können sie nur durch Code
+ersetzt werden, der ebenfalls mindestens so tief eingerückt ist.
 
-Als erste Struktur definieren wir eine Zeile.
-Sie enthält nicht nur die gelesenen Zeichen, sondern
-zusätzlich den Namen der Quell-Datei und die Zeile in der Quell-Datei.
-Diese Informationen werden später benötigt, um die die richtigen `#line`
-Anweisungen zu generieren.
-Definieren wir zuerst einen Test in `md-patcher.cpp`:
+Als erste Struktur definieren wir eine Zeile. Sie enthält nicht nur die
+gelesenen Zeichen, sondern zusätzlich den Namen der Quell-Datei und die Zeile
+in der Quell-Datei. Diese Informationen werden später benötigt, um die die
+richtigen `#line` Anweisungen zu generieren. Definieren wir zuerst einen Test
+in `md-patcher.cpp`:
 
 ```c++
 #include "solid/require.h"
@@ -154,10 +145,7 @@ class Line {
 		std::string file_;
 		int number_;
 	public:
-		Line(
-			const std::string &value, const std::string &file,
-			int number
-		):
+		Line(const std::string &value, const std::string &file, int number):
 			value_ { value }, file_ { file }, number_ { number }
 		{ }
 		const std::string &value() const { return value_; }
@@ -183,8 +171,8 @@ Eine Ausgabe-Datei hat selber auch einen Namen und beliebig viele Zeilen:
 // ...
 ```
 
-Hier ist einfache Implementierung der Klasse, um den Unit-Test zum
-Laufen zu bekommen:
+Hier ist einfache Implementierung der Klasse, um den Unit-Test zum Laufen zu
+bekommen:
 
 ```c++
 // ...
@@ -225,12 +213,9 @@ static std::map<std::string, File> pool;
 
 ## Ausgabe
 
-Zäumen wir das Pferd von hinten auf und betrachten zuerst
-die Ausgabe.
-Es werden einfach alle Zeilen in die entsprechenden
-Dateien geschrieben.
-Bisher gibt es zwar noch keine Zeilen.
-Dem entsprechend ist das Ergebnis leer.
+Zäumen wir das Pferd von hinten auf und betrachten zuerst die Ausgabe. Es werden
+einfach alle Zeilen in die entsprechenden Dateien geschrieben. Bisher gibt es
+zwar noch keine Zeilen. Dem entsprechend ist das Ergebnis leer.
 
 ```c++
 // ...
@@ -244,8 +229,7 @@ Dem entsprechend ist das Ergebnis leer.
 ```
 
 Momentan gibt es noch gar nicht die Methode, die ein `File` in einen
-`std::string` schreibt.
-Daher wird diese erst einmal definiert:
+`std::string` schreibt. Daher wird diese erst einmal definiert:
 
 ```c++
 // ...
@@ -260,9 +244,8 @@ std::string write_file_to_string(const File &f) {
 // ...
 ```
 
-Aber auch die verwendete Methode gibt es noch nicht.
-Diese wird als `template` implementiert,
-da nicht jeder Stream einen vollen `std::ostream` implementiert:
+Aber auch die verwendete Methode gibt es noch nicht. Diese wird als `template`
+implementiert, da nicht jeder Stream einen vollen `std::ostream` implementiert:
 
 ```c++
 // ...
@@ -279,11 +262,10 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 ```
 
-Die Parameter werden als `template` implementiert.
-Später verwenden wir anstatt Streams einen `Lazy_Writer`,
-der Dateien nur schreibt, wenn sie sich auch verändert haben.
-Dadurch bleiben die Änderungszeitstempel von Dateien erhalten, die
-sich nicht verändert haben.
+Die Parameter werden als `template` implementiert. Später verwenden wir anstatt
+Streams einen `Lazy_Writer`, der Dateien nur schreibt, wenn sie sich auch
+verändert haben. Dadurch bleiben die Änderungszeitstempel von Dateien erhalten,
+die sich nicht verändert haben.
 
 Der nächste Test haucht den Dateien Inhalt ein:
 
@@ -301,8 +283,7 @@ Der nächste Test haucht den Dateien Inhalt ein:
 // ...
 ```
 
-Dazu muss aber zuerst die Methode zum Einfügen von Zeilen implementiert
-werden:
+Dazu muss aber zuerst die Methode zum Einfügen von Zeilen implementiert werden:
 
 ```c++
 // ...
@@ -322,14 +303,13 @@ class File {
 // ...
 ```
 
-Da normale Iteratoren beim `insert` ihre Gültigkeit verlieren können,
-wird die Index-Position gesichert und daraus nach dem `insert` wieder
-ein gültiger Iterator erzeugt.
+Da normale Iteratoren beim `insert` ihre Gültigkeit verlieren können, wird die
+Index-Position gesichert und daraus nach dem `insert` wieder ein gültiger
+Iterator erzeugt.
 
 Interessant wird es, wenn die Zeilen in der Ursprungs-Datei nicht fortlaufend
-sortiert waren.
-In diesem Fall muss ein spezielles `#line` Makro generiert werden:
-
+sortiert waren. In diesem Fall muss ein spezielles `#line` Makro generiert
+werden:
 
 ```c++
 // ...
@@ -345,8 +325,8 @@ In diesem Fall muss ein spezielles `#line` Makro generiert werden:
 // ...
 ```
 
-Beim Schreiben muss daher die aktuelle Datei und Zeilen-Nummer mit
-gespeichert und passend aktualisiert werden:
+Beim Schreiben muss daher die aktuelle Datei und Zeilen-Nummer mit gespeichert
+und passend aktualisiert werden:
 
 ```c++
 // ...
@@ -366,8 +346,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 ```
 
-Bei der Ausgabe wird eine Hilfsmethode benötigt, um positive Zahlen
-auszugeben:
+Bei der Ausgabe wird eine Hilfsmethode benötigt, um positive Zahlen auszugeben:
 
 ```c++
 // ...
@@ -388,7 +367,6 @@ auszugeben:
 
 Diese Funktion muss auch noch definiert werden:
 
-
 ```c++
 // ...
 template<typename ST>
@@ -401,6 +379,7 @@ void put_num(ST &s, int num) {
 template<typename ST>
 // ...
 ```
+
 Nicht jede Datei darf diese `#line` Anweisungen erhalten. Sie funktionieren
 nur bei C/C++-Dateien. Oder genauer: mit Dateien, welche die Endungen `.h`, `.c`
 oder `.cpp` haben. In `md-patcher.cpp` bekommt daher die File Klasse ein
@@ -452,9 +431,7 @@ std::string get_extension(std::string path) {
 // ...
 ```
 
-Wir können auch testen, was passiert wenn die gleich die erste Zeile falsch
-ist:
-
+Wir können auch testen, was passiert wenn die gleich die erste Zeile falsch ist:
 
 ```c++
 // ...
@@ -472,7 +449,6 @@ ist:
 
 Oder wenn sich die Datei ändert:
 
-
 ```c++
 // ...
 	// unit-tests
@@ -488,9 +464,8 @@ Oder wenn sich die Datei ändert:
 ```
 
 Bei der eigentlichen Ausgabe wird statt dessen die `lazy-write` Bibliothek
-benutzt.
-Damit werden die Dateien nur dann neu geschrieben, wenn sie sich auch wirklich
-verändern.
+benutzt. Damit werden die Dateien nur dann neu geschrieben, wenn sie sich auch
+wirklich verändern.
 
 ```c++
 // ...
@@ -523,9 +498,9 @@ Nun kann die Ausgabe abgeschlossen werden:
 
 ## Eingabe lesen
 
-Das Lesen der Eingabe übernimmt eine weitere Bibliothek: `line-reader`.
-Die Klasse `Line_Reader_Pool` enthält eine ganze Liste von offenen Dateien,
-die nach einander abgearbeitet werden.
+Das Lesen der Eingabe übernimmt eine weitere Bibliothek: `line-reader`. Die
+Klasse `Line_Reader_Pool` enthält eine ganze Liste von offenen Dateien, die nach
+einander abgearbeitet werden.
 
 ```c++
 // ...
@@ -549,15 +524,12 @@ std::ostream &err_pos() {
 // ...
 ```
 
-Der zusätzliche Kommentar hilft uns später Funktionen
-zu definieren,
-die `next` aufrufen.
-Diese müssen nach der Funktion `next` definiert werden,
-oder es gibt einen Fehler bei der Übersetzung.
+Der zusätzliche Kommentar hilft uns später Funktionen zu definieren, die `next`
+aufrufen. Diese müssen nach der Funktion `next` definiert werden, oder es gibt
+einen Fehler bei der Übersetzung.
 
-Die Methode `next` gibt die nächste Zeile zurück und mit
-`pos` kann der Dateiname und die Zeilennummer der nächsten Zeile ermittelt
-werden.
+Die Methode `next` gibt die nächste Zeile zurück und mit `pos` kann der
+Dateiname und die Zeilennummer der nächsten Zeile ermittelt werden.
 
 ```c++
 // ...
@@ -581,7 +553,6 @@ werden.
 ```
 
 Es können auch mehrere Dateien auf einmal gelesen werden:
-
 
 ```c++
 // ...
@@ -629,9 +600,8 @@ Es können auch mehrere Dateien auf einmal gelesen werden:
 // ...
 ```
 
-Damit kann das Lesen in der `main` Funktion in
-`md-patcher.cpp` beschrieben werden
-(auch wenn es die aufgerufenen Funktionen noch nicht gibt):
+Damit kann das Lesen in der `main` Funktion in `md-patcher.cpp` beschrieben
+werden (auch wenn es die aufgerufenen Funktionen noch nicht gibt):
 
 ```c++
 // ...
@@ -654,11 +624,11 @@ Damit kann das Lesen in der `main` Funktion in
 // ...
 ```
 
-Es werden so lange Zeilen gelesen, bis das Ende erreicht ist.
-Code-Blöcke ohne Syntax-Angabe werden nicht geparst.
+Es werden so lange Zeilen gelesen, bis das Ende erreicht ist. Code-Blöcke ohne
+Syntax-Angabe werden nicht geparst.
 
-Die Funktion `starts_with` in `md-patcher.cpp` prüft einfach,
-ob ein String mit einer bestimmten Sequenz beginnt:
+Die Funktion `starts_with` in `md-patcher.cpp` prüft einfach, ob ein String mit
+einer bestimmten Sequenz beginnt:
 
 ```c++
 // ...
@@ -675,17 +645,14 @@ static bool starts_with(
 // ...
 ```
 
-Hier sieht man wieder, wie eine bestehende Zeile
-herangezogen wird,
-um einen geeigneten Einfügepunkt der Funktion zu finden.
+Hier sieht man wieder, wie eine bestehende Zeile herangezogen wird, um einen
+geeigneten Einfüge-Punkt der Funktion zu finden.
 
-Ebenfalls recht einfach kann ein neuer
-Dateiname ermittelt werden.
-Es wird in der aktuellen Zeile geprüft,
-ob zwei Backticks vorkommen.
-Wenn zwischen zwei Backticks mindestens ein Punkt oder ein Slash
-vorkommt, dann ist dies ein Kandidat für einen Dateinamen.
-Der letzte Kandidat einer Zeile wird als neuer Dateiname verwendet.
+Ebenfalls recht einfach kann ein neuer Dateiname ermittelt werden. Es wird in
+der aktuellen Zeile geprüft, ob zwei Backticks vorkommen. Wenn zwischen zwei
+Backticks mindestens ein Punkt oder ein Slash vorkommt, dann ist dies ein
+Kandidat für einen Dateinamen. Der letzte Kandidat einer Zeile wird als neuer
+Dateiname verwendet.
 
 Folgender Unit-Test macht dies deutlich:
 
@@ -701,8 +668,8 @@ Folgender Unit-Test macht dies deutlich:
 // ...
 ```
 
-Die Umsetzung geht einfach die Kandidaten durch. Der letzte Kandidat
-steht nach Beenden der Funktion im Argument.
+Die Umsetzung geht einfach die Kandidaten durch. Der letzte Kandidat steht nach
+Beenden der Funktion im Argument.
 
 ```c++
 // ...
@@ -730,23 +697,17 @@ static void change_cur_file_name(std::string &file) {
 
 ## Programmcode extrahieren
 
-Ich hoffe,
-Sie haben so wie ich Spaß an der schrittweisen Definition
-von Programmen gefunden.
+Ich hoffe, Sie haben so wie ich Spaß an der schrittweisen Definition von
+Programmen gefunden.
 
-Ursprünglich hatte ich ein deutlich komplizierteres
-Programm `hex` geschrieben.
-Aber das eignet sich nicht so gut,
-um Programme zu dokumentieren.
-Es war mit seiner eigenen Syntax zu kompliziert.
-Für eine andere Programmiersprache `xtx` habe ich nach
-einer einfacheren Lösung gesucht.
-Und `md-patcher` ist das Ergebnis.
+Ursprünglich hatte ich ein deutlich komplizierteres Programm `hex` geschrieben.
+Aber das eignet sich nicht so gut, um Programme zu dokumentieren. Es war mit
+seiner eigenen Syntax zu kompliziert. Für eine andere Programmiersprache `xtx`
+habe ich nach einer einfacheren Lösung gesucht. Und `md-patcher` ist das
+Ergebnis.
 
-Die Funktion `read_patch` in `md-patcher.cpp` liest das
-Fragment Zeile für Zeile,
-während es einen Iterator auf die bisherigen Zeilen der
-Datei hält:
+Die Funktion `read_patch` in `md-patcher.cpp` liest das Fragment Zeile für
+Zeile, während es einen Iterator auf die bisherigen Zeilen der Datei hält:
 
 ```c++
 // ...
@@ -809,9 +770,8 @@ static inline bool read_patch(File &file) {
 // ...
 ```
 
-Beim Einfügen einer Zeile muss darauf geachtet werden,
-dass danach der Iterator nicht mehr gültig sein muss.
-Es muss also über den Index gegangen werden:
+Beim Einfügen einer Zeile muss darauf geachtet werden, dass danach der Iterator
+nicht mehr gültig sein muss. Es muss also über den Index gegangen werden:
 
 ```c++
 // ...
@@ -828,9 +788,9 @@ static inline bool read_patch(File &file) {
 // ...
 ```
 
-Bei der Wildcard-Erkennung wird ein `ident` ermittelt,
-welcher der Funktion in `md-patcher.cpp` mitgegeben wird,
-um ein vorzeitiges Ende des Kopierens zu erkennen:
+Bei der Wildcard-Erkennung wird ein `ident` ermittelt, welcher der Funktion in
+`md-patcher.cpp` mitgegeben wird, um ein vorzeitiges Ende des Kopierens zu
+erkennen:
 
 ```c++
 // ...
@@ -849,8 +809,8 @@ static inline bool read_patch(File &file) {
 // ...
 ```
 
-Ob der Füll-Kommentar vorhanden ist, ermittelt die
-folgende Funktion in `md-patcher.cpp`:
+Ob der Füll-Kommentar vorhanden ist, ermittelt die folgende Funktion in
+`md-patcher.cpp`:
 
 ```c++
 // ...
@@ -869,8 +829,7 @@ static inline bool line_is_wildcard(
 // ...
 ```
 
-Damit kann zu guter Letzt die Füll-Funktion angegeben
-werden:
+Damit kann zu guter Letzt die Füll-Funktion angegeben werden:
 
 ```c++
 // ...
@@ -898,13 +857,10 @@ static inline bool do_wildcard(
 
 ## Includes verarbeiten
 
-Wenn Markdown-Dateien aus der aktuellen Datei heraus verlinkt werden,
-dann sollen diese auch mit prozessiert werden.
-Dadurch müssen nicht bei neuen Dateien ständig die Makefiles angepasst
-werden.
-Dafür soll es eine Hilfs-Funktion geben, die Links aus einer Zeile
-extrahiert:
-
+Wenn Markdown-Dateien aus der aktuellen Datei heraus verlinkt werden, dann
+sollen diese auch mit prozessiert werden. Dadurch müssen nicht bei neuen Dateien
+ständig die Makefiles angepasst werden. Dafür soll es eine Hilfsfunktion geben,
+die Links aus einer Zeile extrahiert:
 
 ```c++
 // ...
@@ -917,8 +873,7 @@ extrahiert:
 // ...
 ```
 
-Aber diese Funktion gibt es noch nicht.
-Hier ist die Implementierung:
+Aber diese Funktion gibt es noch nicht. Hier ist die Implementierung:
 
 ```c++
 // ...
@@ -939,8 +894,8 @@ static std::string link_in_line(const std::string &line) {
 // ...
 ```
 
-Nun muss nur noch geprüft werden, ob ein passender Link existiert.
-Falls ja, wird die Datei ebenfalls bearbeitet.
+Nun muss nur noch geprüft werden, ob ein passender Link existiert. Falls ja,
+wird die Datei ebenfalls bearbeitet.
 
 ```c++
 // ...
@@ -956,8 +911,7 @@ Falls ja, wird die Datei ebenfalls bearbeitet.
 // ...
 ```
 
-Für die Normalisierung wird der Pfad erst einmal in seine Komponenten
-zerlegt:
+Für die Normalisierung wird der Pfad erst einmal in seine Komponenten zerlegt:
 
 ```c++
 // ...
@@ -1002,8 +956,8 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 // ...
 ```
 
-Als weitere Optimierung sollen keine Teile ausgegeben werden, die mit
-`#if 0` auskommentiert sind:
+Als weitere Optimierung sollen keine Teile ausgegeben werden, die mit `#if 0`
+auskommentiert sind:
 
 ```c++
 bool write_raw { false };
@@ -1023,10 +977,10 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		auto idx { l.value().find("#if 0") };
 		if (!write_raw && idx != std::string::npos) {
             bool contains_nonspace { false };
-            for (auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i) {
-                if (*i > ' ') {
-                    contains_nonspace = true; break;
-                }
+            for (
+                auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i
+            ) {
+                if (*i > ' ') { contains_nonspace = true; break; }
             }
 			if (! contains_nonspace) {
                 skipping = true;
@@ -1046,13 +1000,12 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 	run_tests();
 	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
-		write_raw = true;
-		--argc; ++argv;
+		write_raw = true; --argc; ++argv;
 	}
 // ...
 ```
 
 Damit ist der gesamte Quellcode beschrieben.
 
-Und aus dieser Markdown-Datei wurde mit `md-patcher`
-das Programm selbst extrahiert.
+Und aus dieser Markdown-Datei wurde mit `md-patcher` das Programm selbst
+extrahiert.

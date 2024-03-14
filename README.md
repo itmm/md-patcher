@@ -433,8 +433,8 @@ Implementierung hier reicht.
 
 Nicht jede Datei darf diese `#line` Anweisungen erhalten. Sie funktionieren
 nur bei C/C++-Dateien. Oder genauer: mit Dateien, welche die Endungen `.h`, `.c`
-oder `.cpp` haben. In `md-patcher.cpp` bekommt daher die File Klasse ein
-Attribut, um das prüfen zu können:
+oder `.cpp` haben. In `md-patcher.cpp` setze ich daher in der `File`-Klasse im
+Konstruktor ein Attribut, um das prüfen zu können:
 
 ```c++
 // ...
@@ -459,8 +459,7 @@ class File : public std::vector<Line> {
 // ...
 ```
 
-Die zusätzliche Abfrage kann beim Schreiben der Zeilen-Makros berücksichtigt
-werden:
+Die `#line`-Makros schreibe ich nur, wenn das Flag gesetzt ist:
 
 ```c++
 // ...
@@ -477,7 +476,9 @@ extrahieren:
 
 ```c++
 // ...
-#include <string>
+
+// ...
+
 std::string get_extension(std::string path) {
 	auto got { path.rfind('.') };
 	if (got == std::string::npos) { return std::string { }; }
@@ -486,7 +487,7 @@ std::string get_extension(std::string path) {
 // ...
 ```
 
-Wir können auch testen, was passiert wenn die gleich die erste Zeile falsch ist:
+Ich kann auch testen was passiert, wenn gleich die erste Zeile falsch ist:
 
 ```c++
 // ...
@@ -518,16 +519,19 @@ Oder wenn sich die Datei ändert:
 // ...
 ```
 
-Bei der eigentlichen Ausgabe wird statt dessen die `lazy-write` Bibliothek
-benutzt. Damit werden die Dateien nur dann neu geschrieben, wenn sie sich auch
-wirklich verändern.
+Bei der eigentlichen Ausgabe wird statt dessen die
+[`lazy-write`](https://github.com/itmm/lazy-write) Bibliothek benutzt. Damit
+schreibe ich Dateien nur dann neu, wenn sie sich auch wirklich verändern.
+Ich kann die Stream-Klasse `Lazy_Write` wie einen einfachen Stream verwenden:
 
 ```c++
+// ...
+
+#include "lazy-write/lazy-write.h"
 // ...
 ST &write_file_to_stream(const File &f, ST &out) {
 	// ...
 }
-#include "lazy-write/lazy-write.h"
 
 inline void write_file(const File &f) {
 	Lazy_Write out { f.name() };
@@ -536,11 +540,7 @@ inline void write_file(const File &f) {
 // ...
 ```
 
-Diese Bibliothek ist auch der Grund dafür, dass Zahlen nicht direkt ausgegeben
-werden können. `lazy-write` unterstützt nur die Ausgabe von Zeichen und
-`string`s.
-
-Nun kann die Ausgabe abgeschlossen werden:
+Nun kann ich die Ausgabe abschliessen:
 
 ```c++
 // ...
@@ -553,14 +553,14 @@ Nun kann die Ausgabe abgeschlossen werden:
 
 ## Eingabe lesen
 
-Das Lesen der Eingabe übernimmt eine weitere Bibliothek: `line-reader`. Die
-Klasse `Line_Reader_Pool` enthält eine ganze Liste von offenen Dateien, die nach
+Das Lesen der Eingabe übernimmt eine weitere Bibliothek:
+[`line-reader`](https://github.com/itmm/line-reader). Die Klasse
+`Line_Reader_Pool` enthält eine ganze Liste von offenen Dateien, die nach
 einander abgearbeitet werden.
 
 ```c++
 // ...
-#include <string>
-#include <iostream>
+#include "lazy-write/lazy-write.h"
 #include "line-reader/line-reader.h"
 
 static std::string line;
@@ -575,13 +575,8 @@ std::ostream &err_pos() {
 		':' << reader.pos().line() << ' ';
 }
 
-// next defined
 // ...
 ```
-
-Der zusätzliche Kommentar hilft uns später Funktionen zu definieren, die `next`
-aufrufen. Diese müssen nach der Funktion `next` definiert werden, oder es gibt
-einen Fehler bei der Übersetzung.
 
 Die Methode `next` gibt die nächste Zeile zurück und mit `pos` kann der
 Dateiname und die Zeilennummer der nächsten Zeile ermittelt werden.

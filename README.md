@@ -17,12 +17,18 @@ das Fragment der richtigen Datei zuzuordnen.
 
 **Achtung**: Das Programm prüft nicht, ob der Name sinnvoll ist.
 
+Ach so: diese Datei kann mit `md-patcher` prozessiert werden und liefert den
+Source-Code. Aber zum Bootstrappen liegt der generierte Source-Code ebenfalls
+im Repository.
+
 Ich muss Dateien nicht auf einen Schlag eingeben. Ich kann Fragmente
-im Laufe der Zeit erweitern. So kann ich mich von der groben Strukutur zu den
+im Laufe der Zeit erweitern. So kann ich mich von der groben Struktur zu den
 Feinheiten vortasten und habe dabei stets ein baubares Programm.
 Ich habe mit `md-patcher.cpp` so angefangen:
 
 ```c++
+#include <cstdlib>
+
 int main(int argc, const char *argv[]) {
 	// parse input
 	// write output
@@ -30,7 +36,7 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-Ich habe aas Programm in C++ geschrieben. Genauer: im C++17 Standard. Ich denke,
+Ich habe das Programm in C++ geschrieben. Genauer: im C++17 Standard. Ich denke,
 diese Sprache erlaubt eine vernünftige Balance zwischen Kompaktheit und
 Ausführungsgeschwindigkeit. Für zusätzliche Robustheit, verwende ich einzelne
 Pakete aus dem `solid`-Namensraum.
@@ -39,7 +45,7 @@ Im Gegensatz zu C gibt es bei C++ schon mächtige Werkzeuge für den Umgang mit
 Containern in der Standard-Bibliothek. Und trotzdem ist das erzeugte Programm
 schnell und hat wenig externe Abhängigkeiten.
 
-Das gerade angegebene Fragment definiert nur eine Funktion `main`. Dies ist die
+Das gerade angegebene Fragment definiert nur die Funktion `main`. Dies ist die
 zentrale Funktion, die aufgerufen wird, wenn wir das Programm starten. Die
 Zeichen `//` leiten einen Kommentar ein. Alles was hinter den beiden
 Zeichen steht, wird vom Compiler ignoriert.
@@ -57,28 +63,40 @@ Damit können Sie eine Version vom `md-patcher` bauen, mit dem Sie dann einen
 `CMake`-Build durchführen können (der den Source aus diesem Dokument
 extrahiert).
 
-Zugegeben, das Programm macht noch nicht sehr viel. Aber ich kann es jetzt
-Stück für Stück erweitern. Zuerst füge ich Code hinzu, um Unit-Tests
-auszuführen. Damit habe ich die Möglichkeit, das Programm nach TDD zu
-entwickeln. Diese Tests kapsel ich in der Funktion `run_tests` in
+Zugegeben, das Programm macht noch nicht viel. Aber ich kann es jetzt Stück für
+Stück erweitern. Zuerst füge ich Code hinzu, um Unit-Tests auszuführen. Damit
+habe ich die Möglichkeit, das Programm nach dem Test Driven Design (TDD) zu
+entwickeln. Diese Tests kapsele ich in der Funktion `run_tests` in
 `md-patcher.cpp`, die ich bei jedem Start ausführe:
 
 ```c++
-#include <string>
+// ...
+
 static inline void run_tests() {
 	// unit-tests
 }
+
 int main(int argc, const char *argv[]) {
 	run_tests();
-	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
-		return 0;
-	}
 	// ...
 }
 ```
 
 Mit dem Kommandozeilen-Argument `--run-only-tests` kann ich angeben, dass nur
-die Unit-Tests ausgeführt werden sollen.
+die Unit-Tests ausgeführt werden sollen:
+
+```c++
+#include <cstdlib>
+#include <string>
+// ...
+int main(int argc, const char *argv[]) {
+	run_tests();
+	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
+		return EXIT_SUCCESS;
+	}
+	// ...
+}
+```
 
 Wichtig sind die Zeilen mit dem Füll-Kommentar `// ...`. Genau diese Zeilen
 erkennt `md-patcher` und fügt das bisher bestehende Programm ein.
@@ -93,31 +111,38 @@ Der resultierende Code (dessen Ausgabe jetzt nach `/dev/null` geschrieben wird),
 ist also:
 
 ```c++
+#include <cstdlib>
+#include <string>
+
 static inline void run_tests() {
 	// unit-tests
 }
+
 int main(int argc, const char *argv[]) {
 	run_tests();
 	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
-		return 0;
+		return EXIT_SUCCESS;
 	}
 	// parse input
 	// write output
-	return 0;
+	return EXIT_SUCCESS;
 }
 ```
 
 Wenn Füll-Kommentare mit Tabs eingerückt sind, dann können sie nur durch Code
 ersetzt werden, der ebenfalls mindestens so tief eingerückt ist.
 
-Als erste Struktur definieren wir eine Zeile. Sie enthält nicht nur die
+Als erste Daten-Struktur definiere ich eine Zeile. Sie enthält nicht nur die
 gelesenen Zeichen, sondern zusätzlich den Namen der Quell-Datei und die Zeile
 in der Quell-Datei. Diese Informationen werden später benötigt, um die die
 richtigen `#line` Anweisungen zu generieren. Definieren wir zuerst einen Test
 in `md-patcher.cpp`:
 
 ```c++
+// ...
+
 #include "solid/require.h"
+
 // ...
 	// unit-tests
 	{ // check Line attributes
@@ -139,7 +164,8 @@ Hier die entsprechende Struktur:
 
 ```c++
 // ...
-#include <string>
+#include "solid/require.h"
+
 class Line {
 		std::string value_;
 		std::string file_;
@@ -155,10 +181,11 @@ class Line {
 // ...
 ```
 
-Die Attribute sind nicht `const`, da `Line`-Instanzen einander zugewiesen
-werden können.
+Die Attribute sind nicht als `const` deklariert, damit ich `Line`-Instanzen
+einander zugweisen kann.
 
-Eine Ausgabe-Datei hat selber auch einen Namen und beliebig viele Zeilen:
+Als Nächstes definiere ich eine Ausgabe-Datei. Sie hat selber auch einen Namen
+und beliebig viele Zeilen:
 
 ```c++
 // ...
@@ -171,28 +198,30 @@ Eine Ausgabe-Datei hat selber auch einen Namen und beliebig viele Zeilen:
 // ...
 ```
 
-Hier ist einfache Implementierung der Klasse, um den Unit-Test zum Laufen zu
-bekommen:
+`md-patcher` setzt die Unit-Tests in umgekehrter Reihenfolge zusammen. Der
+zweite Test wird als Erstes ausgeführt. Dies ist zum einen dem einfachen
+Einfügen nach einer bestimmten Zeile geschuldet. Zum anderen hat es aber auch
+den angenehmen Nebeneffekt, dass die neuen Tests zuerst ausgeführt werden.
+
+Hier ist meine einfache Implementierung der Klasse, um den Unit-Test zum Laufen
+zu bekommen:
 
 ```c++
+// ...
+#include <string>
+#include <vector>
 // ...
 class Line {
 	// ...
 };
-#include <vector>
-class File {
+
+class File : public std::vector<Line> {
 		const std::string name_;
-		using Lines = std::vector<Line>;
-		Lines lines_;
 	public:
 		File(const std::string &name): name_ { name } {
 			// init file attributes
 		}
-		const std::string &name() const { return name_; }
-		auto begin() { return lines_.begin(); }
-		auto begin() const { return lines_.begin(); }
-		auto end() { return lines_.end(); }
-		auto end() const { return lines_.end(); }
+		const std::string& name() const { return name_; }
 };
 // ...
 ```
@@ -202,7 +231,7 @@ deren Inhalt generiert wird:
 
 ```c++
 // ...
-class File {
+class File : public std::vector<Line> {
 	// ...
 };
 #include <map>
@@ -233,7 +262,7 @@ Momentan gibt es noch gar nicht die Methode, die ein `File` in einen
 
 ```c++
 // ...
-class File {
+class File : public std::vector<Line> {
 	// ...
 };
 #include <sstream>
@@ -249,7 +278,7 @@ implementiert, da nicht jeder Stream einen vollen `std::ostream` implementiert:
 
 ```c++
 // ...
-class File {
+class File : public std::vector<Line> {
 	// ...
 };
 template<typename ST>
@@ -287,15 +316,15 @@ Dazu muss aber zuerst die Methode zum Einfügen von Zeilen implementiert werden:
 
 ```c++
 // ...
-class File {
+class File : public std::vector<Line> {
 	// ...
 	public:
-		// ...
-		auto begin() { return lines_.begin(); }
-		using iterator = Lines::iterator;
+		File(const std::string &name): name_ { name } {
+			// ...
+		}
 		iterator insert(iterator pos, const Line &line) {
 			auto p { pos - begin() };
-			lines_.insert(pos, line);
+			std::vector<Line>::insert(pos, line);
 			return begin() + (p + 1);
 		}	
 		// ...
@@ -387,7 +416,7 @@ Attribut, um das prüfen zu können:
 
 ```c++
 // ...
-class File {
+class File : public std::vector<Line> {
 		bool with_lines_;
 		static bool with_lines(std::string name) {
 			std::string ext { get_extension(name) };
@@ -976,18 +1005,18 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		}
 		auto idx { l.value().find("#if 0") };
 		if (!write_raw && idx != std::string::npos) {
-            bool contains_nonspace { false };
-            for (
-                auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i
-            ) {
-                if (*i > ' ') { contains_nonspace = true; break; }
-            }
+			bool contains_nonspace { false };
+			for (
+				auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i
+			) {
+				if (*i > ' ') { contains_nonspace = true; break; }
+			}
 			if (! contains_nonspace) {
-                skipping = true;
-                end_line = l.value();
-                end_line.replace(idx, 5, "#endif");
+				skipping = true;
+				end_line = l.value();
+				end_line.replace(idx, 5, "#endif");
 				continue;
-            }
+			}
 		}
 		// ...
 	}

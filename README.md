@@ -132,6 +132,8 @@ int main(int argc, const char *argv[]) {
 Wenn Füll-Kommentare mit Tabs eingerückt sind, dann können sie nur durch Code
 ersetzt werden, der ebenfalls mindestens so tief eingerückt ist.
 
+## Die Grundbausteine von `md-patcher`
+
 Als erste Daten-Struktur definiere ich eine Zeile. Sie enthält nicht nur die
 gelesenen Zeichen, sondern zusätzlich den Namen der Quell-Datei und die Zeile
 in der Quell-Datei. Diese Informationen werden später benötigt, um die die
@@ -171,7 +173,10 @@ class Line {
 		std::string file_;
 		int number_;
 	public:
-		Line(const std::string &value, const std::string &file, int number):
+		Line(
+			const std::string &value, const std::string &file,
+			int number
+		):
 			value_ { value }, file_ { file }, number_ { number }
 		{ }
 		const std::string &value() const { return value_; }
@@ -218,7 +223,9 @@ class Line {
 class File : public std::vector<Line> {
 		const std::string name_;
 	public:
-		File(const std::string &name): name_ { name } {
+		File(const std::string &name):
+			name_ { name }
+		{
 			// init file attributes
 		}
 		const std::string& name() const { return name_; }
@@ -226,8 +233,7 @@ class File : public std::vector<Line> {
 // ...
 ```
 
-Damit können wir einen Pool an Dateien offen halten,
-deren Inhalt generiert wird:
+Ich sammle die Dateien in einem Pool:
 
 ```c++
 #include <cstdlib>
@@ -242,11 +248,17 @@ static std::map<std::string, File> pool;
 // ...
 ```
 
+Ich kann also keine Dateien generieren, die größer als der aktuelle
+Arbeitsspeicher (inklusive virtuellem Speicher) sind, da der Inhalt komplett
+vorgehalten wird.
+
+Aber mir sind dadurch noch keine Probleme entstanden.
+
 ## Ausgabe
 
-Zäumen wir das Pferd von hinten auf und betrachten zuerst die Ausgabe. Es werden
-einfach alle Zeilen in die entsprechenden Dateien geschrieben. Bisher gibt es
-zwar noch keine Zeilen. Dem entsprechend ist das Ergebnis leer.
+Ich zäume das Pferd von hinten auf und betrachte zuerst die Ausgabe. Ich
+schreibe alle Zeilen aller Dateien in die entsprechenden Dateien. Bisher gibt es
+zwar noch keine Zeilen. Daher ist das Ergebnis leer.
 
 ```c++
 // ...
@@ -259,8 +271,9 @@ zwar noch keine Zeilen. Dem entsprechend ist das Ergebnis leer.
 // ...
 ```
 
-Momentan gibt es noch gar nicht die Methode, die ein `File` in einen
-`std::string` schreibt. Daher wird diese erst einmal definiert:
+Momentan gibt es noch gar nicht die Funktion, die ein `File` in einen
+`std::string` schreibt. Ich definiere sie über eine andere Funktion,
+die ein `File` in einen Stream schreibt:
 
 ```c++
 // ...
@@ -278,7 +291,7 @@ std::string write_file_to_string(const File &f) {
 // ...
 ```
 
-Aber auch die verwendete Methode gibt es noch nicht. Diese wird als `template`
+Aber auch diese Funktion gibt es noch nicht. Diese wird als `template`
 implementiert, da nicht jeder Stream einen vollen `std::ostream` implementiert:
 
 ```c++
@@ -297,10 +310,9 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 ```
 
-Die Parameter werden als `template` implementiert. Später verwenden wir anstatt
-Streams einen `Lazy_Writer`, der Dateien nur schreibt, wenn sie sich auch
-verändert haben. Dadurch bleiben die Änderungszeitstempel von Dateien erhalten,
-die sich nicht verändert haben.
+Später verwende ich anstatt eines `std::ostream` einen `Lazy_Writer`, der
+Dateien nur schreibt, wenn sie sich auch verändert haben. Dadurch bleiben die
+Änderungszeitstempel von Dateien erhalten, die sich nicht verändert haben.
 
 Der nächste Test haucht den Dateien Inhalt ein:
 
@@ -318,17 +330,14 @@ Der nächste Test haucht den Dateien Inhalt ein:
 // ...
 ```
 
-Dazu muss aber zuerst die Methode zum Einfügen von Zeilen implementiert werden:
+Dazu muss ich aber zuerst die Methode zum Einfügen von Zeilen implementiert
+werden:
 
 ```c++
 // ...
 class File : public std::vector<Line> {
 	// ...
 	public:
-		File(const std::string &name): name_ { name } {
-			// ...
-		}
-		
 		iterator insert(iterator pos, const Line &line) {
 			auto p { pos - begin() };
 			std::vector<Line>::insert(pos, line);
@@ -339,13 +348,12 @@ class File : public std::vector<Line> {
 // ...
 ```
 
-Da normale Iteratoren beim `insert` ihre Gültigkeit verlieren können, wird die
-Index-Position gesichert und daraus nach dem `insert` wieder ein gültiger
-Iterator erzeugt.
+Iteratoren können beim `insert` ihre Gültigkeit verlieren. Daher sicher ich die
+Index-Position und erzeuge daraus nach dem `insert` wieder einen gültiger
+Iterator.
 
 Interessant wird es, wenn die Zeilen in der Ursprungs-Datei nicht fortlaufend
-sortiert waren. In diesem Fall muss ein spezielles `#line` Makro generiert
-werden:
+sortiert waren. In diesem Fall muss ich ein spezielles `#line` Makro generieren:
 
 ```c++
 // ...
@@ -361,8 +369,8 @@ werden:
 // ...
 ```
 
-Beim Schreiben muss daher die aktuelle Datei und Zeilen-Nummer mit gespeichert
-und passend aktualisiert werden:
+Beim Schreiben berechne ich die nächste zu erwartende Zeilen-Nummer. Wenn diese
+von der tatsächlichen Nummer abweicht, muss ich ein `#line`-Makro einfügen:
 
 ```c++
 // ...
@@ -373,6 +381,8 @@ ST &write_file_to_stream(const File &f, ST &out) {
 	for (const auto &l : f) {
 		if (line != l.number() || name != l.file()) {
 			// write line macro
+			line = l.number();
+			name = l.file();
 		}
 		out << l.value(); out.put('\n');
 		++line;
@@ -387,17 +397,15 @@ Bei der Ausgabe wird eine Hilfsmethode benötigt, um positive Zahlen auszugeben:
 ```c++
 // ...
 			// write line macro
-			out << "#line ";
-			put_num(out, l.number());
-			if (name != l.file()) {
-				out.put(' ');
-				out.put('"');
-				out << l.file();
-				out.put('"');
-			}
-			out.put('\n');
-			line = l.number();
-			name = l.file();
+				out << "#line ";
+				put_num(out, l.number());
+				if (name != l.file()) {
+					out.put(' ');
+					out.put('"');
+					out << l.file();
+					out.put('"');
+				}
+				out.put('\n');
 // ...
 ```
 
@@ -416,6 +424,13 @@ template<typename ST>
 // ...
 ```
 
+Ich habe nicht auf die Standard-Umwandlung von `std::ostream` zurückgegriffen,
+da nicht jede Stream-Klasse dies unterstützt. Speziell kann mein `Lazy_Stream`
+im Moment noch keine Zahlen ausgeben. Auch ist diese Implementierung nicht
+komplett generisch: Die auszugebende Zahl darf nicht `0` sein. Dies kann aber
+bei Zeilen-Nummern eh nicht der Fall sein, sodass diese einfache
+Implementierung hier reicht.
+
 Nicht jede Datei darf diese `#line` Anweisungen erhalten. Sie funktionieren
 nur bei C/C++-Dateien. Oder genauer: mit Dateien, welche die Endungen `.h`, `.c`
 oder `.cpp` haben. In `md-patcher.cpp` bekommt daher die File Klasse ein
@@ -424,7 +439,7 @@ Attribut, um das prüfen zu können:
 ```c++
 // ...
 class File : public std::vector<Line> {
-		bool with_lines_;
+		const bool with_lines_;
 		static bool with_lines(std::string name) {
 			std::string ext { get_extension(name) };
 			return ext == "h" || ext == "c" || ext == "cpp";
@@ -433,8 +448,12 @@ class File : public std::vector<Line> {
 	public:
 		bool with_lines() const { return with_lines_; }
 		// ...
-			// init file attributes
-			with_lines_ = with_lines(name);
+		File(const std::string &name):
+			with_lines_ { with_lines(name) },
+			name_ { name }
+		{
+			// ...
+		}
 		// ...
 };
 // ...
@@ -447,8 +466,8 @@ werden:
 // ...
 			// write line macro
 			if (f.with_lines()) {
-			// ...
-			out.put('\n');
+				// ...
+				out.put('\n');
 			}
 // ...
 ```

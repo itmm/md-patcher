@@ -230,13 +230,15 @@ Damit können wir einen Pool an Dateien offen halten,
 deren Inhalt generiert wird:
 
 ```c++
+#include <cstdlib>
+#include <map>
 // ...
 class File : public std::vector<Line> {
 	// ...
 };
-#include <map>
 
 static std::map<std::string, File> pool;
+
 // ...
 ```
 
@@ -262,10 +264,13 @@ Momentan gibt es noch gar nicht die Methode, die ein `File` in einen
 
 ```c++
 // ...
+#include <map>
+#include <sstream>
+// ...
 class File : public std::vector<Line> {
 	// ...
 };
-#include <sstream>
+
 std::string write_file_to_string(const File &f) {
 	std::ostringstream out;
 	return write_file_to_stream(f, out).str();
@@ -281,6 +286,7 @@ implementiert, da nicht jeder Stream einen vollen `std::ostream` implementiert:
 class File : public std::vector<Line> {
 	// ...
 };
+
 template<typename ST>
 ST &write_file_to_stream(const File &f, ST &out) {
 	for (const auto &l : f) {
@@ -322,6 +328,7 @@ class File : public std::vector<Line> {
 		File(const std::string &name): name_ { name } {
 			// ...
 		}
+		
 		iterator insert(iterator pos, const Line &line) {
 			auto p { pos - begin() };
 			std::vector<Line>::insert(pos, line);
@@ -944,7 +951,9 @@ Für die Normalisierung wird der Pfad erst einmal in seine Komponenten zerlegt:
 
 ```c++
 // ...
-#include <sstream>
+class File : public std::vector<Line> {
+// ...
+};
 
 void push_parts(std::vector<std::string> &parts, const std::string &path) {
 	if (path.empty()) { return; }

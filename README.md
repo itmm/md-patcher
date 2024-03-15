@@ -189,11 +189,13 @@ class Line {
 // ...
 ```
 
-Die Attribute sind nicht als `const` deklariert, damit ich `Line`-Instanzen
-einander zugweisen kann.
+I would gladly declare the attributes of this class as `const`. But then I cannot use a
+`std::vector` for storing them: elements can be moved around in an `insert` operation and
+you can't assign them if some attributes are `const`. So I use the more verbose variant
+with non-`const` attributes and `public:` accessors.
 
-Als Nächstes definiere ich eine Ausgabe-Datei. Sie hat selber auch einen Namen
-und beliebig viele Zeilen:
+Next I define a `File`. That is basically a vector of `Line`s plus a file path. Again I start
+with a test:
 
 ```c++
 // ...

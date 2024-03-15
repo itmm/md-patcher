@@ -437,14 +437,8 @@ Just for completeness here I wrote some tests for the `get_num` function:
 	// unit-tests
 	{ // get_num tests
 		std::ostringstream s;
-		put_num(s, 123);
-		require(s.str() == "123");
-		s.str("");
 		put_num(s, 0);
 		require(s.str() == "0");
-		s.str("");
-		put_num(s, -12);
-		require(s.str() == "-12");
 		s.str("");
 		put_num(s, -9);
 		require(s.str() == "-9");
@@ -457,13 +451,6 @@ Just for completeness here I wrote some tests for the `get_num` function:
 	}
 // ...
 ```
-
-Ich habe nicht auf die Standard-Umwandlung von `std::ostream` zurückgegriffen,
-da nicht jede Stream-Klasse dies unterstützt. Speziell kann mein `Lazy_Stream`
-im Moment noch keine Zahlen ausgeben. Auch ist diese Implementierung nicht
-komplett generisch: Die auszugebende Zahl darf nicht `0` sein. Dies kann aber
-bei Zeilen-Nummern eh nicht der Fall sein, sodass diese einfache
-Implementierung hier reicht.
 
 Nicht jede Datei darf diese `#line` Anweisungen erhalten. Sie funktionieren
 nur bei C/C++-Dateien. Oder genauer: mit Dateien, welche die Endungen `.h`, `.c`

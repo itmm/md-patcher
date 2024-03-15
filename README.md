@@ -1,30 +1,36 @@
 # md-patcher
 
-`md-patcher` ist ein Programm, um aus Code-Fragmenten einer Markdown-Datei
-kompilierbare Programme zu extrahieren.
+`md-patcher` is a program, to extract code fragments out of Markdown files and
+combine them to a compilable program. That is a successor of
+[hex](https://github.com/itmm/hex) with a far clearer syntax, but also with
+slightly smaller expressive power.
 
-## Genereller Aufbau
+## General Structure
 
-Ich `md-patcher` habe einfach gehalten. Es liest Markdown-Dateien und probiert,
-darin enthaltene Code-Fragmente zu vollständigen Source-Code Dateien
-zusammenzusetzen. Es schreibt diese dann heraus. `md-patcher` nimmt den
-Datei-Namen aus normalen Text-Blöcken: Jedes Inline-Codefragment das mindestens
-einen Slash oder Punkt enthält, ändert den Namen der aktuellen Datei.
+I use an easy structure for `md-patcher`: I reads Markdown files and combines
+the included code fragments to whole source code files. Then I write the
+resulting files out. I use normal inline code fragments to specify the file
+names of the generated files: each inline code fragment that contains at least
+a period or slash changes the current file name.
 
-Wenn ich mir unsicher bin, gebe ich direkt vor einem Code-Block den Name der
-Datei als Inline-Codefragment an. Dadurch fällt es auch dem Leser leichter,
-das Fragment der richtigen Datei zuzuordnen.
+Sometimes I am unsure, if `md-patcher` and I agree about the current file name.
+So I add the file name as an inline code fragment directly before the code
+fragment. As a benefit, it is also easier for the reader to see to with file
+the fragment belongs.
 
-**Achtung**: Das Programm prüft nicht, ob der Name sinnvoll ist.
+**Caution**: `md-patcher` does not check, if the file name makes sense. Also
+in `md-patcher` I will not create any directories that are missing in the path.
 
-Ach so: diese Datei kann mit `md-patcher` prozessiert werden und liefert den
-Source-Code. Aber zum Bootstrappen liegt der generierte Source-Code ebenfalls
-im Repository.
+By the way: this Markdown file can be used to extract the full source code
+of `md-patcher`. But for that I need a running version of `md-patcher`. So
+the generated source code is also part of the repository to ease the
+bootstrap process.
 
-Ich muss Dateien nicht auf einen Schlag eingeben. Ich kann Fragmente
-im Laufe der Zeit erweitern. So kann ich mich von der groben Struktur zu den
-Feinheiten vortasten und habe dabei stets ein baubares Programm.
-Ich habe mit `md-patcher.cpp` so angefangen:
+I do not need to create the files in one go. I can modify and extend fragments
+while going through this document. So I can start with a birds eye view and
+drill down later. At every step I hopefully have a buildable program.
+
+I started `md-patcher.cpp` this way:
 
 ```c++
 #include <cstdlib>
@@ -36,38 +42,32 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-Ich habe das Programm in C++ geschrieben. Genauer: im C++17 Standard. Ich denke,
-diese Sprache erlaubt eine vernünftige Balance zwischen Kompaktheit und
-Ausführungsgeschwindigkeit. Für zusätzliche Robustheit, verwende ich einzelne
-Pakete aus dem `solid`-Namensraum.
+I wrote the program in C++. More precisely in the C++20 standard. I believe
+that this language is a good compromise between succinct formulation of
+solutions and execution speed. For additional robustness I use some packets
+from the `solid` namespace.
 
-Im Gegensatz zu C gibt es bei C++ schon mächtige Werkzeuge für den Umgang mit
-Containern in der Standard-Bibliothek. Und trotzdem ist das erzeugte Programm
-schnell und hat wenig externe Abhängigkeiten.
+In contrast to C there are powerful tools in the C++ standard library.
+Especially I warmly welcome the support for strings and containers. On the
+other hand the generated program is fast without a lot of external dependencies.
 
-Das gerade angegebene Fragment definiert nur die Funktion `main`. Dies ist die
-zentrale Funktion, die aufgerufen wird, wenn wir das Programm starten. Die
-Zeichen `//` leiten einen Kommentar ein. Alles was hinter den beiden
-Zeichen steht, wird vom Compiler ignoriert.
+I build the program with [CMake](https://www.cmake.org). The file
+[CMakeLists.txt](./CMakeLists.txt) contains the configuration.
 
-Das Programm habe ich mit [CMake](https://www.cmake.org) gebaut. Die
-entsprechende Konfigurationsdatei liegt in [CMakeLists.txt](./CMakeLists.txt).
+But there is one problem: `CMake` itself uses `md-patcher` to extract the
+source code from this Markdown file. So I cannot use `CMake` to build the
+first version of `md-patcher`. To solve this problem I added the small
+script [bootstrap.sh](./bootstrap.sh) that directly builds `md-patcher` from
+the source code files without running `md-patcher`. I can use the generated
+`mdp` executable to make a full `CMake` build run.
 
-Es gibt leider ein Problem mit `CMake`: `CMake` verwendet selbst `md-patcher`,
-um die Sourcen aus diesem Dokument zu extrahieren. Ich habe die generierten
-Sourcen ebenfalls im Repository abgelegt, aber ohne `md-patcher` kann `CMake`
-die Sourcen nicht bauen. Daher habe ich noch ein kleines Skript
-[bootstrap.sh](./bootstrap.sh) hinzugefügt, das aus den bestehenden Sourcen
-direkt `md-patcher` baut, ohne irgendwelche Abhängigkeiten zu prüfen.
-Damit können Sie eine Version vom `md-patcher` bauen, mit dem Sie dann einen
-`CMake`-Build durchführen können (der den Source aus diesem Dokument
-extrahiert).
+OK, the program does not do much yet. But I can add functionality in small
+steps. First I add code to enable unit-testing. So I can continue the project
+in Test Driven Design (TDD): first write a test, see it fail, fix the test
+and refactor. I document the results in this Markdown file.
 
-Zugegeben, das Programm macht noch nicht viel. Aber ich kann es jetzt Stück für
-Stück erweitern. Zuerst füge ich Code hinzu, um Unit-Tests auszuführen. Damit
-habe ich die Möglichkeit, das Programm nach dem Test Driven Design (TDD) zu
-entwickeln. Diese Tests kapsele ich in der Funktion `run_tests` in
-`md-patcher.cpp`, die ich bei jedem Start ausführe:
+I put all unit-tests in a function `run_tests` that I call in `md-patcher.cpp`
+on every start:
 
 ```c++
 // ...
@@ -82,8 +82,8 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-Mit dem Kommandozeilen-Argument `--run-only-tests` kann ich angeben, dass nur
-die Unit-Tests ausgeführt werden sollen:
+If I pass the command line argument `--run-only-tests` I signal, that I only
+want to run the unit-tsts and do not want to process any additional files:
 
 ```c++
 #include <cstdlib>
@@ -98,14 +98,13 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-Wichtig sind die Zeilen mit dem Füll-Kommentar `// ...`. Genau diese Zeilen
-erkennt `md-patcher` und fügt das bisher bestehende Programm ein.
+This argument is used by `CMake` to run the test suite.
 
-`md-patcher` probiert, das bestehende Programm mit dem Fragment
-zusammenzuführen. Dabei nutzt es zum einen identische Zeilen als Verankerung
-der beiden Teile miteinander. Zum anderen wird mit den Füll-Kommentaren
-angezeigt, an welcher Stelle im Fragment der bestehende Code eingesetzt werden
-kann.
+Please note the special comment `// ...`. These comments signal `md-patcher`
+that it should jump over the next lines of the file until it finds a line
+that matches the line following the comment. That allows me to specify the
+position where the new code will be inserted. If the comment is indented it
+can only jump over lines that have the same prefix.
 
 Der resultierende Code (dessen Ausgabe jetzt nach `/dev/null` geschrieben wird),
 ist also:

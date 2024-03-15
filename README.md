@@ -166,7 +166,8 @@ Hier die entsprechende Struktur:
 
 ```c++
 // ...
-#include "solid/require.h"
+
+// ...
 
 class Line {
 		std::string value_;
@@ -562,6 +563,7 @@ einander abgearbeitet werden.
 // ...
 #include "lazy-write/lazy-write.h"
 #include "line-reader/line-reader.h"
+// ...
 
 static std::string line;
 static Line_Reader_Pool reader;
@@ -578,8 +580,8 @@ std::ostream &err_pos() {
 // ...
 ```
 
-Die Methode `next` gibt die nächste Zeile zurück und mit `pos` kann der
-Dateiname und die Zeilennummer der nächsten Zeile ermittelt werden.
+Die Methode `next` gibt die nächste Zeile zurück und mit `pos` kann ich den
+Dateiname und die Zeilennummer der nächsten Zeile ermitteln.
 
 ```c++
 // ...
@@ -602,7 +604,7 @@ Dateiname und die Zeilennummer der nächsten Zeile ermittelt werden.
 // ...
 ```
 
-Es können auch mehrere Dateien auf einmal gelesen werden:
+Ich kann auch mehrere Dateien auf einmal lesen:
 
 ```c++
 // ...
@@ -650,8 +652,8 @@ Es können auch mehrere Dateien auf einmal gelesen werden:
 // ...
 ```
 
-Damit kann das Lesen in der `main` Funktion in `md-patcher.cpp` beschrieben
-werden (auch wenn es die aufgerufenen Funktionen noch nicht gibt):
+Damit kann ich das Lesen in der `main` Funktion in `md-patcher.cpp` umsetzen
+(auch wenn es die aufgerufenen Funktionen noch nicht gibt):
 
 ```c++
 // ...
@@ -674,14 +676,18 @@ werden (auch wenn es die aufgerufenen Funktionen noch nicht gibt):
 // ...
 ```
 
-Es werden so lange Zeilen gelesen, bis das Ende erreicht ist. Code-Blöcke ohne
-Syntax-Angabe werden nicht geparst.
+Ich lese so lange Zeilen, bis ich das Ende erreicht habe. Code-Blöcke ohne
+Syntax-Angabe werden nicht geparst. Das ist ein kleiner Trick, damit ich bei
+der Fehlersuche schnell mal einen Block überspringen kann.
 
-Die Funktion `starts_with` in `md-patcher.cpp` prüft einfach, ob ein String mit
+In der Funktion `starts_with` in `md-patcher.cpp` prüfe ich, ob ein String mit
 einer bestimmten Sequenz beginnt:
 
 ```c++
 // ...
+
+// ...
+
 static std::string line;
 
 static bool starts_with(
@@ -722,6 +728,10 @@ Die Umsetzung geht einfach die Kandidaten durch. Der letzte Kandidat steht nach
 Beenden der Funktion im Argument.
 
 ```c++
+// ...
+
+// ...
+
 // ...
 static std::string line;
 
@@ -927,7 +937,8 @@ Aber diese Funktion gibt es noch nicht. Hier ist die Implementierung:
 
 ```c++
 // ...
-#include <string>
+
+// ...
 
 static std::string link_in_line(const std::string &line) {
 	std::string got;
@@ -1009,10 +1020,16 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 ```
 
 Als weitere Optimierung sollen keine Teile ausgegeben werden, die mit `#if 0`
-auskommentiert sind:
+auskommentiert sind. Mit dem Kommandozeilen-Argument `--raw` kann ich diese
+Optimierung jedoch unterbinden:
 
 ```c++
+// ...
+
+// ...
+
 bool write_raw { false };
+
 // ...
 ST &write_file_to_stream(const File &f, ST &out) {
 	bool skipping { false };
@@ -1043,10 +1060,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		}
 		// ...
 	}
-	if (skipping) {
-		std::cerr << "open #if 0\n";
-		std::exit(EXIT_FAILURE);
-	}
+	require(! skipping);
 	// ...
 }
 // ...
@@ -1054,6 +1068,16 @@ ST &write_file_to_stream(const File &f, ST &out) {
 	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
 		write_raw = true; --argc; ++argv;
 	}
+// ...
+```
+
+Mit einem speziellen Kommentar im Markdown kann ich die Generierung vorzeitig
+abbrechen. Das ist beim Debuggen hilfreich:
+
+```c++
+// ...
+			change_cur_file_name(cur_file);
+			if (line == "<!-- MD-PATCHER EXIT -->") { break; }
 // ...
 ```
 

@@ -202,19 +202,20 @@ with a test:
 	// unit-tests
 	{ // check empty file
 		File f { "out.cpp" };
-		require(f.name() == "out.cpp");
+		require(f.name == "out.cpp");
 		require(f.begin() == f.end());
 	}
 // ...
 ```
 
-`md-patcher` setzt die Unit-Tests in umgekehrter Reihenfolge zusammen. Der
-zweite Test wird als Erstes ausgeführt. Dies ist zum einen dem einfachen
-Einfügen nach einer bestimmten Zeile geschuldet. Zum anderen hat es aber auch
-den angenehmen Nebeneffekt, dass die neuen Tests zuerst ausgeführt werden.
+`md-patcher` orders the unit-tests in the reverse direction: the second test is the first to
+run. This is because the tests are inserted after the `// unit-tests` line. But it has the
+nice side effect that the lastest test is run first.
 
-Hier ist meine einfache Implementierung der Klasse, um den Unit-Test zum Laufen
-zu bekommen:
+But to achieve that, every test must start with an unique line. That is one reason why I start
+each test with a small description of it.
+
+This is my implementation of `File` in `md-patcher.cpp` to make the test pass:
 
 ```c++
 // ...
@@ -226,14 +227,11 @@ class Line {
 };
 
 class File : public std::vector<Line> {
-		const std::string name_;
 	public:
 		File(const std::string &name):
-			name_ { name }
-		{
-			// init file attributes
-		}
-		const std::string& name() const { return name_; }
+			name { name }
+		{ }
+		const std::string name;
 };
 // ...
 ```
@@ -341,7 +339,6 @@ werden:
 ```c++
 // ...
 class File : public std::vector<Line> {
-	// ...
 	public:
 		iterator insert(iterator pos, const Line &line) {
 			auto p { pos - begin() };
@@ -381,7 +378,7 @@ von der tatsächlichen Nummer abweicht, muss ich ein `#line`-Makro einfügen:
 // ...
 template<typename ST>
 ST &write_file_to_stream(const File &f, ST &out) {
-	auto name { f.name() };
+	auto name { f.name };
 	int line { 1 };
 	for (const auto &l : f) {
 		if (line != l.number() || name != l.file()) {
@@ -444,21 +441,16 @@ Konstruktor ein Attribut, um das prüfen zu können:
 ```c++
 // ...
 class File : public std::vector<Line> {
-		const bool with_lines_;
-		static bool with_lines(std::string name) {
+		static bool with_lines_(std::string name) {
 			std::string ext { get_extension(name) };
 			return ext == "h" || ext == "c" || ext == "cpp";
 		}
-		// ...
 	public:
-		bool with_lines() const { return with_lines_; }
+		const bool with_lines;
 		// ...
 		File(const std::string &name):
-			with_lines_ { with_lines(name) },
-			name_ { name }
-		{
-			// ...
-		}
+			with_lines { with_lines_(name) },
+			name { name }
 		// ...
 };
 // ...
@@ -469,7 +461,7 @@ Die `#line`-Makros schreibe ich nur, wenn das Flag gesetzt ist:
 ```c++
 // ...
 			// write line macro
-			if (f.with_lines()) {
+			if (f.with_lines) {
 				// ...
 				out.put('\n');
 			}
@@ -539,7 +531,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 }
 
 inline void write_file(const File &f) {
-	Lazy_Write out { f.name() };
+	Lazy_Write out { f.name };
 	write_file_to_stream(f, out);
 }
 // ...

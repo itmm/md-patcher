@@ -323,8 +323,7 @@ The next test checks that the correct content is written into non-empty files:
 // ...
 ```
 
-Dazu muss ich aber zuerst die Methode zum Einfügen von Zeilen implementiert
-werden:
+I need a method to insert lines and keep the iterator intact:
 
 ```c++
 // ...
@@ -340,12 +339,9 @@ class File : public std::vector<Line> {
 // ...
 ```
 
-Iteratoren können beim `insert` ihre Gültigkeit verlieren. Daher sicher ich die
-Index-Position und erzeuge daraus nach dem `insert` wieder einen gültiger
-Iterator.
-
-Interessant wird es, wenn die Zeilen in der Ursprungs-Datei nicht fortlaufend
-sortiert waren. In diesem Fall muss ich ein spezielles `#line` Makro generieren:
+The lines in a file can be non-continuous. In this case I need to insert a `#line` macro
+to adjust the line counter of the compiler to the refer to the correct source line. First
+I write a test for this scenario:
 
 ```c++
 // ...
@@ -361,8 +357,8 @@ sortiert waren. In diesem Fall muss ich ein spezielles `#line` Makro generieren:
 // ...
 ```
 
-Beim Schreiben berechne ich die nächste zu erwartende Zeilen-Nummer. Wenn diese
-von der tatsächlichen Nummer abweicht, muss ich ein `#line`-Makro einfügen:
+I need to know, when I must add a `#line` macro. So I count the lines in parallel. If the next
+line number is not the expected one, a `#line` macro must be inserted:
 
 ```c++
 // ...
@@ -384,7 +380,8 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 ```
 
-Bei der Ausgabe wird eine Hilfsmethode benötigt, um positive Zahlen auszugeben:
+While writing the macro I need a function to write a number. My stream class does not provide
+this method.
 
 ```c++
 // ...
@@ -401,18 +398,63 @@ Bei der Ausgabe wird eine Hilfsmethode benötigt, um positive Zahlen auszugeben:
 // ...
 ```
 
-Diese Funktion muss auch noch definiert werden:
+The helper function works recursively to write the number:
 
 ```c++
 // ...
 template<typename ST>
-void put_num(ST &s, int num) {
+void recursive_put_num(ST &s, int num) {
 	if (num) {
-		put_num(s, num / 10);
+		recursive_put_num(s, num / 10);
 		s.put((num % 10) + '0');
 	}
 }
+
 template<typename ST>
+void put_num(ST &s, int num) {
+	if (num == 0) {
+		s.put('0');
+	}
+	else {
+		if (num < 0) {
+			s.put('-');
+			if (num < -9) { recursive_put_num(s, num / -10); }
+			s.put('0' - (num % 10));
+		} else {
+			recursive_put_num(s, num);
+		}
+	}
+}
+
+template<typename ST>
+// ...
+```
+
+Just for completeness here I wrote some tests for the `get_num` function:
+
+```c++
+// ...
+	// unit-tests
+	{ // get_num tests
+		std::ostringstream s;
+		put_num(s, 123);
+		require(s.str() == "123");
+		s.str("");
+		put_num(s, 0);
+		require(s.str() == "0");
+		s.str("");
+		put_num(s, -12);
+		require(s.str() == "-12");
+		s.str("");
+		put_num(s, -9);
+		require(s.str() == "-9");
+		s.str("");
+		put_num(s, 2147483647);
+		require(s.str() == "2147483647");
+		s.str("");
+		put_num(s, -2147483648);
+		require(s.str() == "-2147483648");
+	}
 // ...
 ```
 

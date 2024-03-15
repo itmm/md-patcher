@@ -1049,7 +1049,8 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		if (!write_raw && idx != std::string::npos) {
 			bool contains_nonspace { false };
 			for (
-				auto i { l.value().begin() }; i < l.value().begin()  + idx; ++i
+				auto i { l.value().begin() };
+				i < l.value().begin() + idx; ++i
 			) {
 				if (*i > ' ') { contains_nonspace = true; break; }
 			}

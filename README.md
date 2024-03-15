@@ -236,7 +236,7 @@ class File : public std::vector<Line> {
 // ...
 ```
 
-Ich sammle die Dateien in einem Pool:
+I collect all open files in a pool:
 
 ```c++
 #include <cstdlib>
@@ -251,17 +251,11 @@ static std::map<std::string, File> pool;
 // ...
 ```
 
-Ich kann also keine Dateien generieren, die größer als der aktuelle
-Arbeitsspeicher (inklusive virtuellem Speicher) sind, da der Inhalt komplett
-vorgehalten wird.
+## Output
 
-Aber mir sind dadurch noch keine Probleme entstanden.
-
-## Ausgabe
-
-Ich zäume das Pferd von hinten auf und betrachte zuerst die Ausgabe. Ich
-schreibe alle Zeilen aller Dateien in die entsprechenden Dateien. Bisher gibt es
-zwar noch keine Zeilen. Daher ist das Ergebnis leer.
+I am starting at the end of the process and look at the output. I write all lines from all
+files out into the corresponding files. The first test case checks that an empty file can
+be written. Instead of files I use strings to simplify the tests:
 
 ```c++
 // ...
@@ -274,9 +268,8 @@ zwar noch keine Zeilen. Daher ist das Ergebnis leer.
 // ...
 ```
 
-Momentan gibt es noch gar nicht die Funktion, die ein `File` in einen
-`std::string` schreibt. Ich definiere sie über eine andere Funktion,
-die ein `File` in einen Stream schreibt:
+I define the missing function `write_file_to_string` via another function that writes a `File`
+into a stream:
 
 ```c++
 // ...
@@ -294,8 +287,9 @@ std::string write_file_to_string(const File &f) {
 // ...
 ```
 
-Aber auch diese Funktion gibt es noch nicht. Diese wird als `template`
-implementiert, da nicht jeder Stream einen vollen `std::ostream` implementiert:
+The function `write_file_to_stream` uses a template for the stream type. I need only a small
+subset of `std::ostream` and I will use a special stream that only modifies a file, if its
+content changes. But this `Lazy_Stream` does implement only a small set of methods:
 
 ```c++
 // ...
@@ -313,11 +307,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 ```
 
-Später verwende ich anstatt eines `std::ostream` einen `Lazy_Writer`, der
-Dateien nur schreibt, wenn sie sich auch verändert haben. Dadurch bleiben die
-Änderungszeitstempel von Dateien erhalten, die sich nicht verändert haben.
-
-Der nächste Test haucht den Dateien Inhalt ein:
+The next test checks that the correct content is written into non-empty files:
 
 ```c++
 // ...
@@ -325,8 +315,8 @@ Der nächste Test haucht den Dateien Inhalt ein:
 	{ // copy simple file
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "out.c", 1 });
-		it = f.insert(it, { "line 2", "out.c", 2 });
+		it = f.insert(it, { "line 1", "-", 1 });
+		it = f.insert(it, { "line 2", "-", 2 });
 		auto c { write_file_to_string(f) };
 		require(c == "line 1\nline 2\n");
 	}
@@ -363,8 +353,8 @@ sortiert waren. In diesem Fall muss ich ein spezielles `#line` Makro generieren:
 	{ // non-continuous file
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "out.c", 1 });
-		it = f.insert(it, { "line 2", "out.c", 10 });
+		it = f.insert(it, { "line 1", "-", 1 });
+		it = f.insert(it, { "line 2", "-", 10 });
 		auto c { write_file_to_string(f) };
 		require(c == "line 1\n#line 10\nline 2\n");
 	}
@@ -378,7 +368,7 @@ von der tatsächlichen Nummer abweicht, muss ich ein `#line`-Makro einfügen:
 // ...
 template<typename ST>
 ST &write_file_to_stream(const File &f, ST &out) {
-	auto name { f.name };
+	std::string name { "-" };
 	int line { 1 };
 	for (const auto &l : f) {
 		if (line != l.number() || name != l.file()) {
@@ -492,8 +482,8 @@ Ich kann auch testen was passiert, wenn gleich die erste Zeile falsch ist:
 	{ // not starting at one
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "out.c", 4 });
-		it = f.insert(it, { "line 2", "out.c", 5 });
+		it = f.insert(it, { "line 1", "-", 4 });
+		it = f.insert(it, { "line 2", "-", 5 });
 		auto c { write_file_to_string(f) };
 		require(c == "#line 4\nline 1\nline 2\n");
 	}
@@ -508,10 +498,10 @@ Oder wenn sich die Datei ändert:
 	{ // different files
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "out.c", 1 });
-		it = f.insert(it, { "line 2", "other.c", 2 });
+		it = f.insert(it, { "line 1", "-", 1 });
+		it = f.insert(it, { "line 2", "other.md", 2 });
 		auto c { write_file_to_string(f) };
-		require(c == "line 1\n#line 2 \"other.c\"\nline 2\n");
+		require(c == "line 1\n#line 2 \"other.md\"\nline 2\n");
 	}
 // ...
 ```

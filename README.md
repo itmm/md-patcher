@@ -7,7 +7,7 @@ slightly smaller expressive power.
 
 ## General Structure
 
-I use an easy structure for `md-patcher`: I reads Markdown files and combines
+I use an easy structure for `md-patcher`: I read Markdown files and combines
 the included code fragments to whole source code files. Then I write the
 resulting files out. I use normal inline code fragments to specify the file
 names of the generated files: each inline code fragment that contains at least
@@ -106,8 +106,8 @@ that matches the line following the comment. That allows me to specify the
 position where the new code will be inserted. If the comment is indented it
 can only jump over lines that have the same prefix.
 
-Der resultierende Code (dessen Ausgabe jetzt nach `/dev/null` geschrieben wird),
-ist also:
+After processing these three fragments I get the following code, that I
+redirect to `/dev/null` to ignore it:
 
 ```c++
 #include <cstdlib>
@@ -128,16 +128,19 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-Wenn Füll-Kommentare mit Tabs eingerückt sind, dann können sie nur durch Code
-ersetzt werden, der ebenfalls mindestens so tief eingerückt ist.
+## The basic objects of `md-patcher`
 
-## Die Grundbausteine von `md-patcher`
+In this section I describe the classes that I use to store the current state
+of `md-patcher`. Basically that are `File`s that contain `Line`s.
 
-Als erste Daten-Struktur definiere ich eine Zeile. Sie enthält nicht nur die
-gelesenen Zeichen, sondern zusätzlich den Namen der Quell-Datei und die Zeile
-in der Quell-Datei. Diese Informationen werden später benötigt, um die die
-richtigen `#line` Anweisungen zu generieren. Definieren wir zuerst einen Test
-in `md-patcher.cpp`:
+I define a `Line` to be a string that also contains the name of the file from
+which it was extracted and the line number in that file. These original files
+are the Markdown files that are parsed by `md-patcher`. The file name and
+line number are needed to sprinkle in `#line` macros in the generated sources.
+If an error occurs during compilation, the compiler will refer to the markdown
+file that contains the fragment in which the error occurred.
+
+I start with a test in `md-patcher.cpp`:
 
 ```c++
 // ...
@@ -155,13 +158,13 @@ in `md-patcher.cpp`:
 // ...
 ```
 
-Ich verwende das Makro `require` aus meinem Projekt
-[assert-problems](https://github.com/itmm/assert-problems) anstatt von `assert`.
-`require` funktioniert auch in Release-Versionen, hat eine kompaktere Ausgabe
-und kann in Tests abgefangen werden. Es eignet sich sowohl für Unit-Tests, als
-auch für die Erkennung von fehlerhaften Situationen.
+I use the macro `require` from my project
+[assert-problems](https://github.com/itmm/assert-problems) instead of `assert`.
+`require` also works in release builds, has a more compact output and can be
+caught in tests. I use it for unit-tests and also for the detection of
+programming errors by checking parameters or loop invariants.
 
-Hier die entsprechende Struktur:
+Here is my implementation of `Line`:
 
 ```c++
 // ...
@@ -519,7 +522,7 @@ Oder wenn sich die Datei ändert:
 // ...
 ```
 
-Bei der eigentlichen Ausgabe wird statt dessen die
+Bei der eigentlichen Ausgabe wird stattdessen die
 [`lazy-write`](https://github.com/itmm/lazy-write) Bibliothek benutzt. Damit
 schreibe ich Dateien nur dann neu, wenn sie sich auch wirklich verändern.
 Ich kann die Stream-Klasse `Lazy_Write` wie einen einfachen Stream verwenden:
@@ -580,7 +583,7 @@ std::ostream &err_pos() {
 ```
 
 Die Methode `next` gibt die nächste Zeile zurück und mit `pos` kann ich den
-Dateiname und die Zeilennummer der nächsten Zeile ermitteln.
+Dateinamen und die Zeilennummer der nächsten Zeile ermitteln.
 
 ```c++
 // ...

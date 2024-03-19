@@ -190,7 +190,7 @@ class Line {
 ```
 
 I would gladly declare the attributes of this class as `const`. But then I cannot use a
-`std::vector` for storing them: elements can be moved around in an `insert` operation and
+`std::vector` for storing them: elements can be moved around in an `insert` operation, and
 you can't assign them if some attributes are `const`. So I use the more verbose variant
 with non-`const` attributes and `public:` accessors.
 
@@ -212,7 +212,7 @@ with a test:
 run. This is because the tests are inserted after the `// unit-tests` line. But it has the
 nice side effect that the lastest test is run first.
 
-But to achieve that, every test must start with an unique line. That is one reason why I start
+But to achieve that, every test must start with a unique line. That is one reason why I start
 each test with a small description of it.
 
 This is my implementation of `File` in `md-patcher.cpp` to make the test pass:
@@ -452,10 +452,9 @@ Just for completeness here I wrote some tests for the `get_num` function:
 // ...
 ```
 
-Nicht jede Datei darf diese `#line` Anweisungen erhalten. Sie funktionieren
-nur bei C/C++-Dateien. Oder genauer: mit Dateien, welche die Endungen `.h`, `.c`
-oder `.cpp` haben. In `md-patcher.cpp` setze ich daher in der `File`-Klasse im
-Konstruktor ein Attribut, um das prüfen zu können:
+I cannot insert `#line` in every file. Only can C/C++ files can contain this macro. So I can
+only insert them in files whose path ends in `.h`, `.c`, or `.cpp`. In `md-patcher.cpp` I
+set a flag in the constructor that reflects the ability to insert `#line` macros:
 
 ```c++
 // ...
@@ -475,7 +474,7 @@ class File : public std::vector<Line> {
 // ...
 ```
 
-Die `#line`-Makros schreibe ich nur, wenn das Flag gesetzt ist:
+I only write `#line` macros, if the flag is set:
 
 ```c++
 // ...
@@ -487,8 +486,7 @@ Die `#line`-Makros schreibe ich nur, wenn das Flag gesetzt ist:
 // ...
 ```
 
-Es fehlt nur noch die Methode, um die Extension aus einem Dateinamen zu
-extrahieren:
+I have to add the function to extract the extension:
 
 ```c++
 // ...
@@ -503,7 +501,7 @@ std::string get_extension(std::string path) {
 // ...
 ```
 
-Ich kann auch testen was passiert, wenn gleich die erste Zeile falsch ist:
+I must insert a `#line` macro, if the first line of a file is not `1`:
 
 ```c++
 // ...
@@ -519,7 +517,7 @@ Ich kann auch testen was passiert, wenn gleich die erste Zeile falsch ist:
 // ...
 ```
 
-Oder wenn sich die Datei ändert:
+Also, I must insert a `#line` macro if the input file changes:
 
 ```c++
 // ...
@@ -535,10 +533,10 @@ Oder wenn sich die Datei ändert:
 // ...
 ```
 
-Bei der eigentlichen Ausgabe wird stattdessen die
-[`lazy-write`](https://github.com/itmm/lazy-write) Bibliothek benutzt. Damit
-schreibe ich Dateien nur dann neu, wenn sie sich auch wirklich verändern.
-Ich kann die Stream-Klasse `Lazy_Write` wie einen einfachen Stream verwenden:
+For the output I use the library [`lazy-write`](https://github.com/itmm/lazy-write). It only
+writes to file if it changes. So if the generated file is the same one as the one already
+present, the existing file will not be touched. That eases the interplay with tools like
+'Make'. I use the stream class `Lazy_Write` to write the file out:
 
 ```c++
 // ...
@@ -556,7 +554,7 @@ inline void write_file(const File &f) {
 // ...
 ```
 
-Nun kann ich die Ausgabe abschliessen:
+I can now complete the output:
 
 ```c++
 // ...
@@ -567,12 +565,11 @@ Nun kann ich die Ausgabe abschliessen:
 // ...
 ```
 
-## Eingabe lesen
+## Reading the Input
 
-Das Lesen der Eingabe übernimmt eine weitere Bibliothek:
-[`line-reader`](https://github.com/itmm/line-reader). Die Klasse
-`Line_Reader_Pool` enthält eine ganze Liste von offenen Dateien, die nach
-einander abgearbeitet werden.
+For reading the input I use the library [`line-reader`](https://github.com/itmm/line-reader).
+The class `Line_Reader_Pool` contains a list of open files and keeps the paths and line
+numbers for each of it:
 
 ```c++
 // ...
@@ -595,8 +592,8 @@ std::ostream &err_pos() {
 // ...
 ```
 
-Die Methode `next` gibt die nächste Zeile zurück und mit `pos` kann ich den
-Dateinamen und die Zeilennummer der nächsten Zeile ermitteln.
+The method `next` returns the next line and `pos` returns the information about this line. In
+the following tests I show how to handle it. First I have a test with one file:
 
 ```c++
 // ...
@@ -619,7 +616,8 @@ Dateinamen und die Zeilennummer der nächsten Zeile ermitteln.
 // ...
 ```
 
-Ich kann auch mehrere Dateien auf einmal lesen:
+I can also queue multiple files. As soon as one file ends, the content will be fetched from
+the next one:
 
 ```c++
 // ...
@@ -644,7 +642,7 @@ Ich kann auch mehrere Dateien auf einmal lesen:
 // ...
 ```
 
-`#line` Makros in der Eingabe werden richtig verarbeitet:
+I can also include `#line` macros in the input:
 
 ```c++
 // ...
@@ -667,8 +665,8 @@ Ich kann auch mehrere Dateien auf einmal lesen:
 // ...
 ```
 
-Damit kann ich das Lesen in der `main` Funktion in `md-patcher.cpp` umsetzen
-(auch wenn es die aufgerufenen Funktionen noch nicht gibt):
+So I can add the reading of the input in the `main` function of `md-patcher.cpp`. So I still
+have to implement the called functions:
 
 ```c++
 // ...
@@ -691,12 +689,11 @@ Damit kann ich das Lesen in der `main` Funktion in `md-patcher.cpp` umsetzen
 // ...
 ```
 
-Ich lese so lange Zeilen, bis ich das Ende erreicht habe. Code-Blöcke ohne
-Syntax-Angabe werden nicht geparst. Das ist ein kleiner Trick, damit ich bei
-der Fehlersuche schnell mal einen Block überspringen kann.
+I read lines until I reach the end. I do not parse code blocks without a syntax specification.
+That is a small trick to uncomment blocks during the debugging phase.
 
-In der Funktion `starts_with` in `md-patcher.cpp` prüfe ich, ob ein String mit
-einer bestimmten Sequenz beginnt:
+In the function `starts_with` in `md-patcher.cpp` I check, if a string starts with the
+specified sequence of chars:
 
 ```c++
 // ...
@@ -716,25 +713,35 @@ static bool starts_with(
 // ...
 ```
 
-Hier sieht man wieder, wie eine bestehende Zeile herangezogen wird, um einen
-geeigneten Einfüge-Punkt der Funktion zu finden.
+Also I check if the file paths are found correctly. The characters between two backticks are
+only a file path, if they contain at least one slash or period. The last candidate in a line
+is the new file path.
 
-Ebenfalls recht einfach kann ein neuer Dateiname ermittelt werden. Es wird in
-der aktuellen Zeile geprüft, ob zwei Backticks vorkommen. Wenn zwischen zwei
-Backticks mindestens ein Punkt oder ein Slash vorkommt, dann ist dies ein
-Kandidat für einen Dateinamen. Der letzte Kandidat einer Zeile wird als neuer
-Dateiname verwendet.
-
-Folgender Unit-Test macht dies deutlich:
+First I test only one matching name:
 
 ```c++
 // ...
 	// unit-tests
 	{ // multiple filename candidates
 		line = "xx `first` xx `2nd.x` xx `` xx `last` xx";
-		std::string f { "bla" };
+		std::string f { "out.c" };
 		change_cur_file_name(f);
 		require(f == "2nd.x");
+	}
+// ...
+```
+
+But I also test that the last candidate is chosen:
+
+
+```c++
+// ...
+	// unit-tests
+	{ // multiple valid filename candidates
+		line = "xx `first` xx `2nd.x` xx `` xx `last.x` xx";
+		std::string f { "out.c" };
+		change_cur_file_name(f);
+		require(f == "last.x");
 	}
 // ...
 ```

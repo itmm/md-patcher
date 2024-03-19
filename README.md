@@ -315,27 +315,11 @@ The next test checks that the correct content is written into non-empty files:
 	{ // copy simple file
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "-", 1 });
-		it = f.insert(it, { "line 2", "-", 2 });
+		it = ++f.insert(it, { "line 1", "-", 1 });
+		it = ++f.insert(it, { "line 2", "-", 2 });
 		auto c { write_file_to_string(f) };
 		require(c == "line 1\nline 2\n");
 	}
-// ...
-```
-
-I need a method to insert lines and keep the iterator intact:
-
-```c++
-// ...
-class File : public std::vector<Line> {
-	public:
-		iterator insert(iterator pos, const Line &line) {
-			auto p { pos - begin() };
-			std::vector<Line>::insert(pos, line);
-			return begin() + (p + 1);
-		}	
-		// ...
-};
 // ...
 ```
 
@@ -349,8 +333,8 @@ I write a test for this scenario:
 	{ // non-continuous file
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "-", 1 });
-		it = f.insert(it, { "line 2", "-", 10 });
+		it = ++f.insert(it, { "line 1", "-", 1 });
+		it = ++f.insert(it, { "line 2", "-", 10 });
 		auto c { write_file_to_string(f) };
 		require(c == "line 1\n#line 10\nline 2\n");
 	}
@@ -509,8 +493,8 @@ I must insert a `#line` macro, if the first line of a file is not `1`:
 	{ // not starting at one
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "-", 4 });
-		it = f.insert(it, { "line 2", "-", 5 });
+		it = ++f.insert(it, { "line 1", "-", 4 });
+		it = ++f.insert(it, { "line 2", "-", 5 });
 		auto c { write_file_to_string(f) };
 		require(c == "#line 4\nline 1\nline 2\n");
 	}
@@ -525,8 +509,8 @@ Also, I must insert a `#line` macro if the input file changes:
 	{ // different files
 		File f { "out.c" };
 		auto it = f.begin();
-		it = f.insert(it, { "line 1", "-", 1 });
-		it = f.insert(it, { "line 2", "other.md", 2 });
+		it = ++f.insert(it, { "line 1", "-", 1 });
+		it = ++f.insert(it, { "line 2", "other.md", 2 });
 		auto c { write_file_to_string(f) };
 		require(c == "line 1\n#line 2 \"other.md\"\nline 2\n");
 	}
@@ -746,8 +730,8 @@ But I also test that the last candidate is chosen:
 // ...
 ```
 
-Die Umsetzung geht einfach die Kandidaten durch. Der letzte Kandidat steht nach
-Beenden der Funktion im Argument.
+In the function `change_cur_file_name` I walk through all candidates and keep the last one
+as the final result:
 
 ```c++
 // ...
@@ -777,35 +761,20 @@ static void change_cur_file_name(std::string &file) {
 // ...
 ```
 
-## Programmcode extrahieren
+## Extract Programm Code
 
-Ich hoffe, Sie haben so wie ich Spaß an der schrittweisen Definition von
-Programmen gefunden.
+I hope you enjoy the piecewise definition of the program.
 
-Ursprünglich hatte ich ein deutlich komplizierteres Programm `hex` geschrieben.
-Aber das eignet sich nicht so gut, um Programme zu dokumentieren. Es war mit
-seiner eigenen Syntax zu kompliziert. Für eine andere Programmiersprache `xtx`
-habe ich nach einer einfacheren Lösung gesucht. Und `md-patcher` ist das
-Ergebnis.
+Before I wrote [`hex`](https://github.com/itmm/hex). It also allows the extraction and
+concatenation of code fragments. But it uses are more complex syntax. `md-patcher` is far
+easier by using the `// ...` comment.
 
-Die Funktion `read_patch` in `md-patcher.cpp` liest das Fragment Zeile für
-Zeile, während es einen Iterator auf die bisherigen Zeilen der Datei hält:
+In the function `read-patch` in `md-patcher.cpp` I read a code fragment line by line. During
+that time I have a matching iterator to the previously parsed lines of the current file:
 
 ```c++
 // ...
 static std::map<std::string, File> pool;
-
-template<typename IT>
-static IT insert_before(
-	const std::string &ins, IT cur,
-	File &file
-) {
-	auto p { cur - file.begin() };
-	file.insert(cur, Line {
-		ins, reader.pos().file_name(), reader.pos().line()
-	});
-	return file.begin() + (p + 1);
-}
 
 // patch helpers
 
@@ -826,10 +795,12 @@ static inline bool read_patch(File &file) {
 	}
 	return next();
 }
+
 // ...
 ```
 
-Es gibt folgende Fälle beim Code-Parsen zu unterscheiden:
+There are three cases to differentiate while parsing code: processing a wildcard line,
+matching a line with the current code version, and inserting a new line into the code file:
 
 ```c++
 // ...
@@ -841,6 +812,7 @@ static inline bool read_patch(File &file) {
 			// do wildcard
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
+			// lines match
 			++cur;
 		} else {
 			// insert line
@@ -852,8 +824,8 @@ static inline bool read_patch(File &file) {
 // ...
 ```
 
-Beim Einfügen einer Zeile muss darauf geachtet werden, dass danach der Iterator
-nicht mehr gültig sein muss. Es muss also über den Index gegangen werden:
+Due to my special `insert` implememntation in `File`, the returned iterator is valid after
+the insertion:
 
 ```c++
 // ...
@@ -862,7 +834,11 @@ static inline bool read_patch(File &file) {
 	while (line != "```") {
 		// ...
 			// insert line
-			cur = insert_before(line, cur, file);
+			cur = ++file.insert(
+				cur, Line {
+					line, reader.pos().file_name(), reader.pos().line()
+				}
+			);
 		// ...
 	}
 	// ...

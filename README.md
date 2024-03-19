@@ -568,9 +568,10 @@ static bool next() {
 	return reader.next(line);
 }
 
-std::ostream &err_pos() {
-	return std::cerr << reader.pos().file_name() <<
-		':' << reader.pos().line() << ' ';
+void err(const std::string& message) {
+	std::cerr << reader.pos().file_name() <<
+		':' << reader.pos().line() << ' ' << message << '\n';
+	require(false && "error occurred");
 }
 
 // ...
@@ -784,15 +785,9 @@ static inline bool read_patch(File &file) {
 	std::string indent;
 	while (line != "```") {
 		// handle code
-		if (! next()) {
-			err_pos() << "end of file in code block\n";
-			return false;
-		}
+		if (! next()) { err("end of file in code block"); }
 	}
-	if (cur != file.end()) {
-		err_pos() << "incomplete patch\n";
-		return false;
-	}
+	if (cur != file.end()) { err("incomplete patch"); }
 	return next();
 }
 
@@ -899,10 +894,7 @@ static inline bool do_wildcard(
 	File &file,
 	IT &cur
 ) {
-	if (! next()) {
-		err_pos() << "end of file after wildcard\n";
-		return false;
-	}
+	if (! next()) { err("end of file after wildcard"); }
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }
 		if (line != "```" && cur->value() == line) { break; }
@@ -1059,7 +1051,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		}
 		// ...
 	}
-	require(! skipping);
+	if (skipping) { err("no #endif for #if"); }
 	// ...
 }
 // ...

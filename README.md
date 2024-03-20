@@ -270,7 +270,8 @@ class File : public std::vector<Line> {
 
 std::string write_file_to_string(const File &f) {
 	std::ostringstream out;
-	return write_file_to_stream(f, out).str();
+	write_file_to_stream(f, out);
+	return out.str();
 }
 // ...
 ```
@@ -285,8 +286,7 @@ class File : public std::vector<Line> {
 	// ...
 };
 
-template<typename ST>
-ST &write_file_to_stream(const File &f, ST &out) {
+std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 	for (const auto &l : f) {
 		out << l.value(); out.put('\n');
 	}
@@ -334,8 +334,10 @@ line number is not the expected one, a `#line` macro must be inserted:
 
 ```c++
 // ...
-template<typename ST>
-ST &write_file_to_stream(const File &f, ST &out) {
+#include <map>
+#include <ostream>
+// ...
+std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 	std::string name { "-" };
 	int line { 1 };
 	for (const auto &l : f) {
@@ -352,66 +354,14 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 ```
 
-While writing the macro I need a function to write a number. My stream class does not provide
-this method.
+Here I write the macro:
 
 ```c++
 // ...
 			// write line macro
-				out << "#line ";
-				put_num(out, l.number());
+				out << "#line " << l.number();
 				if (name != l.file()) { out << " \"" << l.file() << "\""; }
 				out.put('\n');
-// ...
-```
-
-The helper function works recursively to write the number:
-
-```c++
-// ...
-template<typename ST>
-void recursive_put_num(ST &s, int num) {
-	if (num) {
-		recursive_put_num(s, num / 10);
-		s.put((num % 10) + '0');
-	}
-}
-
-template<typename ST>
-void put_num(ST &s, int num) {
-	if (num == 0) { s.put('0'); }
-	else {
-		if (num < 0) {
-			s.put('-');
-			if (num < -9) { recursive_put_num(s, num / -10); }
-			s.put('0' - (num % 10));
-		} else { recursive_put_num(s, num); }
-	}
-}
-
-template<typename ST>
-// ...
-```
-
-Just for completeness here I wrote some tests for the `get_num` function:
-
-```c++
-// ...
-	// unit-tests
-	{ // get_num tests
-		std::ostringstream s;
-		put_num(s, 0);
-		require(s.str() == "0");
-		s.str("");
-		put_num(s, -9);
-		require(s.str() == "-9");
-		s.str("");
-		put_num(s, 2147483647);
-		require(s.str() == "2147483647");
-		s.str("");
-		put_num(s, -2147483648);
-		require(s.str() == "-2147483648");
-	}
 // ...
 ```
 
@@ -506,7 +456,7 @@ present, the existing file will not be touched. That eases the interplay with to
 
 #include "lazy-write/lazy-write.h"
 // ...
-ST &write_file_to_stream(const File &f, ST &out) {
+std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 	// ...
 }
 
@@ -993,7 +943,7 @@ I keep the blocks in the output:
 bool write_raw { false };
 
 // ...
-ST &write_file_to_stream(const File &f, ST &out) {
+std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 	bool skipping { false };
 	std::string end_line { };
 	// ...

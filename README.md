@@ -1,34 +1,30 @@
 # md-patcher
 
-`md-patcher` is a program, to extract code fragments out of Markdown files and
-combine them to a compilable program. That is a successor of
-[hex](https://github.com/itmm/hex) with a far clearer syntax, but also with
-slightly smaller expressive power.
+`md-patcher` is a program, to extract code fragments out of Markdown files and combine them to
+a compilable program. That is a successor of [hex](https://github.com/itmm/hex) with a far
+clearer syntax, but also with slightly smaller expressive power.
 
 ## General Structure
 
-I use an easy structure for `md-patcher`: I read Markdown files and combines
-the included code fragments to whole source code files. Then I write the
-resulting files out. I use normal inline code fragments to specify the file
-names of the generated files: each inline code fragment that contains at least
-a period or slash changes the current file name.
+I use an easy structure for `md-patcher`: I read Markdown files and combines the included code
+fragments to whole source code files. Then I write the resulting files out. I use normal
+inline code fragments to specify the file names of the generated files: each inline code
+fragment that contains at least a period or slash changes the current file name.
 
-Sometimes I am unsure, if `md-patcher` and I agree about the current file name.
-So I add the file name as an inline code fragment directly before the code
-fragment. As a benefit, it is also easier for the reader to see to with file
-the fragment belongs.
+Sometimes I am unsure, if `md-patcher` and I agree about the current file name. So I add the
+file name as an inline code fragment directly before the code fragment. As a benefit, it is
+also easier for the reader to see to with file the fragment belongs.
 
-**Caution**: `md-patcher` does not check, if the file name makes sense. Also
-in `md-patcher` I will not create any directories that are missing in the path.
+**Caution**: `md-patcher` does not check, if the file name makes sense. Also in `md-patcher`
+I will not create any directories that are missing in the path.
 
-By the way: this Markdown file can be used to extract the full source code
-of `md-patcher`. But for that I need a running version of `md-patcher`. So
-the generated source code is also part of the repository to ease the
-bootstrap process.
+By the way: this Markdown file can be used to extract the full source code of `md-patcher`.
+But for that I need a running version of `md-patcher`. So the generated source code is also
+part of the repository to ease the bootstrap process.
 
-I do not need to create the files in one go. I can modify and extend fragments
-while going through this document. So I can start with a birds eye view and
-drill down later. At every step I hopefully have a buildable program.
+I do not need to create the files in one go. I can modify and extend fragments while going
+through this document. So I can start with a birds eye view and drill down later. At every
+step I hopefully have a buildable program.
 
 I started `md-patcher.cpp` this way:
 
@@ -42,32 +38,29 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-I wrote the program in C++. More precisely in the C++20 standard. I believe
-that this language is a good compromise between succinct formulation of
-solutions and execution speed. For additional robustness I use some packets
-from the `solid` namespace.
+I wrote the program in C++. More precisely in the C++20 standard. I believe that this language
+is a good compromise between succinct formulation of solutions and execution speed. For
+additional robustness I use some packets from the `solid` namespace.
 
-In contrast to C there are powerful tools in the C++ standard library.
-Especially I warmly welcome the support for strings and containers. On the
-other hand the generated program is fast without a lot of external dependencies.
+In contrast to C there are powerful tools in the C++ standard library. Especially I warmly
+welcome the support for strings and containers. On the other hand the generated program is
+fast without a lot of external dependencies.
 
 I build the program with [CMake](https://www.cmake.org). The file
 [CMakeLists.txt](./CMakeLists.txt) contains the configuration.
 
-But there is one problem: `CMake` itself uses `md-patcher` to extract the
-source code from this Markdown file. So I cannot use `CMake` to build the
-first version of `md-patcher`. To solve this problem I added the small
-script [bootstrap.sh](./bootstrap.sh) that directly builds `md-patcher` from
-the source code files without running `md-patcher`. I can use the generated
-`mdp` executable to make a full `CMake` build run.
+But there is one problem: `CMake` itself uses `md-patcher` to extract the source code from
+this Markdown file. So I cannot use `CMake` to build the first version of `md-patcher`. To
+solve this problem I added the small script [bootstrap.sh](./bootstrap.sh) that directly
+builds `md-patcher` from the source code files without running `md-patcher`. I can use the
+generated `mdp` executable to make a full `CMake` build run.
 
-OK, the program does not do much yet. But I can add functionality in small
-steps. First I add code to enable unit-testing. So I can continue the project
-in Test Driven Design (TDD): first write a test, see it fail, fix the test
-and refactor. I document the results in this Markdown file.
+OK, the program does not do much yet. But I can add functionality in small steps. First I add
+code to enable unit-testing. So I can continue the project in Test Driven Design (TDD): first
+write a test, see it fail, fix the test and refactor. I document the results in this Markdown
+file.
 
-I put all unit-tests in a function `run_tests` that I call in `md-patcher.cpp`
-on every start:
+I put all unit-tests in a function `run_tests` that I call in `md-patcher.cpp` on every start:
 
 ```c++
 // ...
@@ -82,8 +75,8 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-If I pass the command line argument `--run-only-tests` I signal, that I only
-want to run the unit-tsts and do not want to process any additional files:
+If I pass the command line argument `--run-only-tests` I signal, that I only want to run the
+unit-tsts and do not want to process any additional files:
 
 ```c++
 #include <cstdlib>
@@ -100,14 +93,13 @@ int main(int argc, const char *argv[]) {
 
 This argument is used by `CMake` to run the test suite.
 
-Please note the special comment `// ...`. These comments signal `md-patcher`
-that it should jump over the next lines of the file until it finds a line
-that matches the line following the comment. That allows me to specify the
-position where the new code will be inserted. If the comment is indented it
-can only jump over lines that have the same prefix.
+Please note the special comment `// ...`. These comments signal `md-patcher` that it should
+jump over the next lines of the file until it finds a line that matches the line following the
+comment. That allows me to specify the position where the new code will be inserted. If the
+comment is indented it can only jump over lines that have the same prefix.
 
-After processing these three fragments I get the following code, that I
-redirect to `/dev/null` to ignore it:
+After processing these three fragments I get the following code, that I redirect to
+`/dev/null` to ignore it:
 
 ```c++
 #include <cstdlib>
@@ -130,15 +122,14 @@ int main(int argc, const char *argv[]) {
 
 ## The basic objects of `md-patcher`
 
-In this section I describe the classes that I use to store the current state
-of `md-patcher`. Basically that are `File`s that contain `Line`s.
+In this section I describe the classes that I use to store the current state of `md-patcher`.
+Basically that are `File`s that contain `Line`s.
 
-I define a `Line` to be a string that also contains the name of the file from
-which it was extracted and the line number in that file. These original files
-are the Markdown files that are parsed by `md-patcher`. The file name and
-line number are needed to sprinkle in `#line` macros in the generated sources.
-If an error occurs during compilation, the compiler will refer to the markdown
-file that contains the fragment in which the error occurred.
+I define a `Line` to be a string that also contains the name of the file from which it was
+extracted and the line number in that file. These original files are the Markdown files that
+are parsed by `md-patcher`. The file name and line number are needed to sprinkle in `#line`
+macros in the generated sources. If an error occurs during compilation, the compiler will
+refer to the markdown file that contains the fragment in which the error occurred.
 
 I start with a test in `md-patcher.cpp`:
 
@@ -159,10 +150,10 @@ I start with a test in `md-patcher.cpp`:
 ```
 
 I use the macro `require` from my project
-[assert-problems](https://github.com/itmm/assert-problems) instead of `assert`.
-`require` also works in release builds, has a more compact output and can be
-caught in tests. I use it for unit-tests and also for the detection of
-programming errors by checking parameters or loop invariants.
+[assert-problems](https://github.com/itmm/assert-problems) instead of `assert`. `require` also
+works in release builds, has a more compact output and can be caught in tests. I use it for
+unit-tests and also for the detection of programming errors by checking parameters or loop
+invariants.
 
 Here is my implementation of `Line`:
 
@@ -176,10 +167,7 @@ class Line {
 		std::string file_;
 		int number_;
 	public:
-		Line(
-			const std::string &value, const std::string &file,
-			int number
-		):
+		Line(const std::string &value, const std::string &file, int number):
 			value_ { value }, file_ { file }, number_ { number }
 		{ }
 		const std::string &value() const { return value_; }
@@ -372,12 +360,7 @@ this method.
 			// write line macro
 				out << "#line ";
 				put_num(out, l.number());
-				if (name != l.file()) {
-					out.put(' ');
-					out.put('"');
-					out << l.file();
-					out.put('"');
-				}
+				if (name != l.file()) { out << " \"" << l.file() << "\""; }
 				out.put('\n');
 // ...
 ```
@@ -396,17 +379,13 @@ void recursive_put_num(ST &s, int num) {
 
 template<typename ST>
 void put_num(ST &s, int num) {
-	if (num == 0) {
-		s.put('0');
-	}
+	if (num == 0) { s.put('0'); }
 	else {
 		if (num < 0) {
 			s.put('-');
 			if (num < -9) { recursive_put_num(s, num / -10); }
 			s.put('0' - (num % 10));
-		} else {
-			recursive_put_num(s, num);
-		}
+		} else { recursive_put_num(s, num); }
 	}
 }
 
@@ -569,8 +548,8 @@ static bool next() {
 }
 
 void err(const std::string& message) {
-	std::cerr << reader.pos().file_name() <<
-		':' << reader.pos().line() << ' ' << message << '\n';
+	std::cerr << reader.pos().file_name() << ':' << reader.pos().line() << ' ' <<
+		message << '\n';
 	require(false && "error occurred");
 }
 
@@ -692,8 +671,7 @@ static bool starts_with(
 	const std::string &prefix
 ) {
 	if (prefix.empty()) { return true; }
-	return base.size() >= prefix.size() &&
-		base.substr(0, prefix.size()) == prefix;
+	return base.size() >= prefix.size() && base.substr(0, prefix.size()) == prefix;
 }
 // ...
 ```
@@ -753,9 +731,7 @@ static void change_cur_file_name(std::string &file) {
 		if (
 			got.find('.') != std::string::npos ||
 			got.find('/') != std::string::npos
-		) {
-			file = got;
-		}
+		) { file = got; }
 		start = end + 1;
 	}
 }
@@ -852,9 +828,7 @@ static inline bool read_patch(File &file) {
 	while (line != "```") {
 		// ...
 			// do wildcard
-			if (! do_wildcard(indent, file, cur)) {
-				return false;
-			}
+			if (! do_wildcard(indent, file, cur)) { return false; }
 		// ...
 	}
 	// ...
@@ -872,9 +846,7 @@ static inline bool line_is_wildcard(
 	std::string &indent
 ) {
 	auto idx = line.find("//" " ...");
-	if (idx == std::string::npos) {
-		return false;
-	}
+	if (idx == std::string::npos) { return false; }
 	indent = line.substr(0, idx);
 	return true;
 }
@@ -888,11 +860,7 @@ With these functions I can write the `do_wildcard` function:
 // patch helpers
 
 template<typename IT>
-static inline bool do_wildcard(
-	const std::string &indent,
-	File &file,
-	IT &cur
-) {
+static inline bool do_wildcard(const std::string &indent, File &file, IT &cur) {
 	if (! next()) { err("end of file after wildcard"); }
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }
@@ -952,10 +920,7 @@ continue from this file:
 // ...
 			change_cur_file_name(cur_file);
 			auto sub { link_in_line(line) };
-			if (
-				sub.size() > 3 &&
-				sub.rfind(".md") == sub.size() - 3
-			) {
+			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
 				// normalize path
 				reader.push_front(sub);
 			}
@@ -999,17 +964,13 @@ components:
 				std::vector<std::string> parts;
 				if (! sub.empty() && sub[0] != '/') {
 					push_parts(parts, cur_file);
-					if (!parts.empty()) {
-						parts.pop_back();
-					}
+					if (!parts.empty()) { parts.pop_back(); }
 				}
 				push_parts(parts, sub);
 				std::ostringstream out;
 				bool first { true };
 				for (auto part : parts) {
-					if (! first) {
-						out << '/';
-					}
+					if (! first) { out << '/'; }
 					out << part;
 					first = false;
 				}

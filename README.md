@@ -776,7 +776,7 @@ static inline bool read_patch(File &file) {
 	while (line != "```") {
 		// ...
 			// do wildcard
-			if (! do_wildcard(indent, file, cur)) { return false; }
+			do_wildcard(indent, file, cur);
 		// ...
 	}
 	// ...
@@ -807,14 +807,13 @@ With these functions I can write the `do_wildcard` function:
 // ...
 // patch helpers
 
-static inline bool do_wildcard(const std::string &indent, File &file, File::iterator &cur) {
+static inline void do_wildcard(const std::string &indent, File &file, File::iterator &cur) {
 	if (! next()) { err("end of file after wildcard"); }
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }
 		if (line != "```" && cur->value() == line) { break; }
 		++cur;
 	}
-	return true;
 }
 // ...
 ```

@@ -19,7 +19,7 @@
 #line 139
 #include "solid/require.h"
 
-#line 848
+#line 847
 static std::string link_in_line(const std::string &line) {
 	std::string got;
 	auto ci = line.find("](");
@@ -173,14 +173,13 @@ static std::map<std::string, File> pool;
 // patch helpers
 
 #line 810
-static inline bool do_wildcard(const std::string &indent, File &file, File::iterator &cur) {
+static inline void do_wildcard(const std::string &indent, File &file, File::iterator &cur) {
 	if (! next()) { err("end of file after wildcard"); }
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }
 		if (line != "```" && cur->value() == line) { break; }
 		++cur;
 	}
-	return true;
 }
 #line 706
 static inline bool read_patch(File &file) {
@@ -193,7 +192,7 @@ static inline bool read_patch(File &file) {
 		if (line_is_wildcard(indent)) {
 			// do wildcard
 #line 779
-			if (! do_wildcard(indent, file, cur)) { return false; }
+			do_wildcard(indent, file, cur);
 #line 732
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
@@ -219,7 +218,7 @@ static inline bool read_patch(File &file) {
 #line 68
 static inline void run_tests() {
 	// unit-tests
-#line 831
+#line 830
 	{ // find file name in line
 		std::string l { "a line with [bla](bla.md) a link" };
 		std::string got { link_in_line(l) };
@@ -368,12 +367,12 @@ int main(int argc, const char *argv[]) {
 				f = pool.find(cur_file);
 			}
 			if (! read_patch(f->second)) { break; }
-#line 1009
+#line 1008
 			if (cur_file == "/dev/null") { pool.erase(f); }
 #line 596
 		} else {
 			change_cur_file_name(cur_file);
-#line 869
+#line 868
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
 				// normalize path

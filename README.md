@@ -841,9 +841,9 @@ static inline bool read_patch(File &file) {
 // ...
 ```
 
-Bei der Wildcard-Erkennung wird ein `ident` ermittelt, welcher der Funktion in
-`md-patcher.cpp` mitgegeben wird, um ein vorzeitiges Ende des Kopierens zu
-erkennen:
+When I recognize a wildcard comment, I store the prefix before the comment in the variable
+`indent`. That variable I pass to the `do_wildcard` function to recognize premature
+termination of the wildcard skipping:
 
 ```c++
 // ...
@@ -862,8 +862,7 @@ static inline bool read_patch(File &file) {
 // ...
 ```
 
-Ob der Füll-Kommentar vorhanden ist, ermittelt die folgende Funktion in
-`md-patcher.cpp`:
+In the following function I recognize, if a wildcard comment is present:
 
 ```c++
 // ...
@@ -882,7 +881,7 @@ static inline bool line_is_wildcard(
 // ...
 ```
 
-Damit kann zu guter Letzt die Füll-Funktion angegeben werden:
+With these functions I can write the `do_wildcard` function:
 
 ```c++
 // ...
@@ -905,12 +904,11 @@ static inline bool do_wildcard(
 // ...
 ```
 
-## Includes verarbeiten
+## Handle Includes
 
-Wenn Markdown-Dateien aus der aktuellen Datei heraus verlinkt werden, dann
-sollen diese auch mit prozessiert werden. Dadurch müssen nicht bei neuen Dateien
-ständig die Makefiles angepasst werden. Dafür soll es eine Hilfsfunktion geben,
-die Links aus einer Zeile extrahiert:
+If I link from one Markdown file to another Markdown file, I also want to process the referred
+file. That simplifies the call of `md-patcher`. I will write a function, that extracts a link
+from the Markdown line:
 
 ```c++
 // ...
@@ -923,7 +921,9 @@ die Links aus einer Zeile extrahiert:
 // ...
 ```
 
-Aber diese Funktion gibt es noch nicht. Hier ist die Implementierung:
+Only one link can be extracted! So you have to split a line with multiple links.
+
+I implement the function in the following way:
 
 ```c++
 // ...
@@ -945,8 +945,8 @@ static std::string link_in_line(const std::string &line) {
 // ...
 ```
 
-Nun muss nur noch geprüft werden, ob ein passender Link existiert. Falls ja,
-wird die Datei ebenfalls bearbeitet.
+I have to check that the link points to a Markdown file. If so, I redirect the input to
+continue from this file:
 
 ```c++
 // ...
@@ -962,7 +962,10 @@ wird die Datei ebenfalls bearbeitet.
 // ...
 ```
 
-Für die Normalisierung wird der Pfad erst einmal in seine Komponenten zerlegt:
+### Normalizing Paths
+
+To normalize a file path, I split it into its components first. Then I ignore `.` components
+and remove a component for each `..` that occurs:
 
 ```c++
 // ...
@@ -984,7 +987,13 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 		parts.push_back(part);
 	}
 }
+// ...
+```
 
+If I run into a relative path, I take the path of the current file and add the relative
+components:
+
+```c++
 // ...
 				// normalize path
 				std::vector<std::string> parts;
@@ -1009,9 +1018,10 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 // ...
 ```
 
-Als weitere Optimierung sollen keine Teile ausgegeben werden, die mit `#if 0`
-auskommentiert sind. Mit dem Kommandozeilen-Argument `--raw` kann ich diese
-Optimierung jedoch unterbinden:
+## Writing `--raw` Output
+
+I normally don't write any parts that are commented out with `#if 0`. But I sometimes need these blocks during
+debugging. So I add an command line argument `--raw`. If this is present, I keep the blocks in the output:
 
 ```c++
 // ...
@@ -1062,8 +1072,10 @@ ST &write_file_to_stream(const File &f, ST &out) {
 // ...
 ```
 
-Mit einem speziellen Kommentar im Markdown kann ich die Generierung vorzeitig
-abbrechen. Das ist beim Debuggen hilfreich:
+## Early Exit Comment
+
+Also I add a special comment, that stops the processing of a file. With that comment I can
+find errors during debugging of the Markdown document:
 
 ```c++
 // ...
@@ -1072,7 +1084,5 @@ abbrechen. Das ist beim Debuggen hilfreich:
 // ...
 ```
 
-Damit ist der gesamte Quellcode beschrieben.
-
-Und aus dieser Markdown-Datei wurde mit `md-patcher` das Programm selbst
-extrahiert.
+That is the complete source code. You can use this Markdown file to extract the source code
+with `md-patcher` and build `md-patcher` from scratch. Have fun!

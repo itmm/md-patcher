@@ -17,7 +17,7 @@
 #line 148
 #include "solid/require.h"
 
-#line 1021
+#line 1026
 bool write_raw { false };
 
 #line 933
@@ -37,7 +37,7 @@ static std::string link_in_line(const std::string &line) {
 static std::string line;
 #line 689
 
-#line 872
+#line 871
 static inline bool line_is_wildcard(
 	std::string &indent
 ) {
@@ -133,7 +133,7 @@ class File : public std::vector<Line> {
 };
 #line 248
 
-#line 973
+#line 975
 void push_parts(std::vector<std::string> &parts, const std::string &path) {
 	if (path.empty()) { return; }
 
@@ -148,7 +148,6 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 		parts.push_back(part);
 	}
 }
-
 #line 300
 template<typename ST>
 #line 390
@@ -178,7 +177,7 @@ void put_num(ST &s, int num) {
 template<typename ST>
 #line 301
 ST &write_file_to_stream(const File &f, ST &out) {
-#line 1025
+#line 1030
 	bool skipping { false };
 	std::string end_line { };
 #line 351
@@ -186,7 +185,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 	int line { 1 };
 #line 302
 	for (const auto &l : f) {
-#line 1029
+#line 1034
 		if (skipping) {
 			if (l.value() == end_line) {
 				skipping = false;
@@ -237,7 +236,7 @@ ST &write_file_to_stream(const File &f, ST &out) {
 		++line;
 #line 304
 	}
-#line 1054
+#line 1059
 	if (skipping) { err("no #endif for #if"); }
 #line 305
 	return out;
@@ -259,7 +258,7 @@ static std::map<std::string, File> pool;
 #line 780
 // patch helpers
 
-#line 891
+#line 890
 template<typename IT>
 static inline bool do_wildcard(
 	const std::string &indent,
@@ -313,7 +312,7 @@ static inline bool read_patch(File &file) {
 #line 75
 static inline void run_tests() {
 	// unit-tests
-#line 918
+#line 916
 	{ // find file name in line
 		std::string l { "a line with [bla](bla.md) a link" };
 		std::string got { link_in_line(l) };
@@ -460,7 +459,7 @@ static inline void run_tests() {
 int main(int argc, const char *argv[]) {
 #line 80
 	run_tests();
-#line 1059
+#line 1064
 	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
 		write_raw = true; --argc; ++argv;
 	}
@@ -483,7 +482,7 @@ int main(int argc, const char *argv[]) {
 			if (! read_patch(f->second)) { break; }
 		} else {
 			change_cur_file_name(cur_file);
-#line 1071
+#line 1076
 			if (line == "<!-- MD-PATCHER EXIT -->") { break; }
 #line 954
 			auto sub { link_in_line(line) };
@@ -492,7 +491,7 @@ int main(int argc, const char *argv[]) {
 				sub.rfind(".md") == sub.size() - 3
 			) {
 				// normalize path
-#line 990
+#line 995
 				std::vector<std::string> parts;
 				if (! sub.empty() && sub[0] != '/') {
 					push_parts(parts, cur_file);

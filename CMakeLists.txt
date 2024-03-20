@@ -18,5 +18,6 @@ add_custom_command(
 add_executable(mdp ${PROJECT_SOURCE_DIR}/md-patcher.cpp)
 target_link_libraries(mdp solid-require line-reader lazy-write)
 include(CTest)
-add_test(NAME all COMMAND ./mdp --run-only-tests)
+add_test(NAME run_unit-tests COMMAND ./mdp --run-only-tests)
+add_test(NAME check_null_behaviour COMMAND ./mdp tests/null-test.md)
 

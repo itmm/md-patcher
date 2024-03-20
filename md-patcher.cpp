@@ -405,6 +405,9 @@ int main(int argc, const char *argv[]) {
 				f = pool.find(cur_file);
 			}
 			if (! read_patch(f->second)) { break; }
+#line 1062
+			if (cur_file == "/dev/null") { pool.erase(f); }
+#line 648
 		} else {
 			change_cur_file_name(cur_file);
 #line 922

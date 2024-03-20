@@ -981,8 +981,9 @@ components:
 
 ## Writing `--raw` Output
 
-I normally don't write any parts that are commented out with `#if 0`. But I sometimes need these blocks during
-debugging. So I add an command line argument `--raw`. If this is present, I keep the blocks in the output:
+I normally don't write any parts that are commented out with `#if 0`. But I sometimes need
+these blocks during debugging. So I add an command line argument `--raw`. If this is present,
+I keep the blocks in the output:
 
 ```c++
 // ...
@@ -1047,3 +1048,17 @@ find errors during debugging of the Markdown document:
 
 That is the complete source code. You can use this Markdown file to extract the source code
 with `md-patcher` and build `md-patcher` from scratch. Have fun!
+
+## Don't write to `/dev/null`
+
+I add one change to not keep any lines that are written to `/dev/null`. That way, multiple
+writes to that file do not need to add comments to skip over existing lines.
+
+The change in `md-patcher.cpp` is minute: I just remove the file after processing it:
+
+```c++
+// ...
+			if (! read_patch(f->second)) { break; }
+			if (cur_file == "/dev/null") { pool.erase(f); }
+// ...
+```

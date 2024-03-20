@@ -276,9 +276,7 @@ std::string write_file_to_string(const File &f) {
 // ...
 ```
 
-The function `write_file_to_stream` uses a template for the stream type. I need only a small
-subset of `std::ostream` and I will use a special stream that only modifies a file, if its
-content changes. But this `Lazy_Stream` does implement only a small set of methods:
+The function `write_file_to_stream` uses a `std::ostream` to write a `File`:
 
 ```c++
 // ...
@@ -809,8 +807,7 @@ With these functions I can write the `do_wildcard` function:
 // ...
 // patch helpers
 
-template<typename IT>
-static inline bool do_wildcard(const std::string &indent, File &file, IT &cur) {
+static inline bool do_wildcard(const std::string &indent, File &file, File::iterator &cur) {
 	if (! next()) { err("end of file after wildcard"); }
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }

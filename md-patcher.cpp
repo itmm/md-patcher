@@ -19,6 +19,9 @@
 #line 139
 #include "solid/require.h"
 
+#line 939
+bool write_raw { false };
+
 #line 847
 static std::string link_in_line(const std::string &line) {
 	std::string got;
@@ -124,13 +127,55 @@ class File : public std::vector<Line> {
 };
 #line 236
 
+#line 887
+void push_parts(std::vector<std::string> &parts, const std::string &path) {
+	if (path.empty()) { return; }
+
+	std::istringstream in { path };
+	std::string part;
+	while (std::getline(in, part, '/')) {
+		if (part == ".") { continue; }
+		if (part == ".." && ! parts.empty()) {
+			parts.pop_back();
+			continue;
+		}
+		parts.push_back(part);
+	}
+}
 #line 287
 std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
+#line 943
+	bool skipping { false };
+	std::string end_line { };
 #line 339
 	std::string name { "-" };
 	int line { 1 };
 #line 288
 	for (const auto &l : f) {
+#line 947
+		if (skipping) {
+			if (l.value() == end_line) {
+				skipping = false;
+				continue;
+			}
+			continue;
+		}
+		auto idx { l.value().find("#if 0") };
+		if (!write_raw && idx != std::string::npos) {
+			bool contains_nonspace { false };
+			for (
+				auto i { l.value().begin() };
+				i < l.value().begin() + idx; ++i
+			) {
+				if (*i > ' ') { contains_nonspace = true; break; }
+			}
+			if (! contains_nonspace) {
+				skipping = true;
+				end_line = l.value();
+				end_line.replace(idx, 5, "#endif");
+				continue;
+			}
+		}
 #line 342
 		if (line != l.number() || name != l.file()) {
 			// write line macro
@@ -152,6 +197,9 @@ std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 		++line;
 #line 290
 	}
+#line 972
+	if (skipping) { err("no #endif for #if"); }
+#line 291
 	return out;
 }
 #line 460
@@ -350,6 +398,10 @@ static inline void run_tests() {
 int main(int argc, const char *argv[]) {
 #line 73
 	run_tests();
+#line 977
+	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
+		write_raw = true; --argc; ++argv;
+	}
 #line 87
 	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
 		return EXIT_SUCCESS;
@@ -372,10 +424,29 @@ int main(int argc, const char *argv[]) {
 #line 596
 		} else {
 			change_cur_file_name(cur_file);
+#line 991
+			if (line == "<!-- MD-PATCHER EXIT -->") { break; }
 #line 868
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
 				// normalize path
+#line 910
+				std::vector<std::string> parts;
+				if (! sub.empty() && sub[0] != '/') {
+					push_parts(parts, cur_file);
+					if (!parts.empty()) { parts.pop_back(); }
+				}
+				push_parts(parts, sub);
+				std::ostringstream out;
+				bool first { true };
+				for (auto part : parts) {
+					if (! first) { out << '/'; }
+					out << part;
+					first = false;
+				}
+				sub = out.str();
+
+#line 871
 				reader.push_front(sub);
 			}
 #line 598

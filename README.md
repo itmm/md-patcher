@@ -876,7 +876,7 @@ continue from this file:
 ### Normalizing Paths
 
 To normalize a file path, I split it into its components first. Then I ignore `.` components
-and remove a component for each `..` that occurs:
+and remove a component for each `..` that occurs. This is the change in `md-patcher.cpp`:
 
 ```c++
 // ...

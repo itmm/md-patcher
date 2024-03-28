@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/lazy-write" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lazy-write/solid-require" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/line-reader" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/solid-require" vcs="Git" />
   </component>

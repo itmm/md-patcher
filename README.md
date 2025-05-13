@@ -776,7 +776,10 @@ static inline bool read_patch(File &file) {
 	while (line != "```") {
 		// ...
 			// do wildcard
-			do_wildcard(indent, file, cur);
+			bool is_super { line.find("//" " ....") != std::string::npos };
+			if (! do_wildcard(indent, file, cur, is_super)) {
+				return false;
+			}
 		// ...
 	}
 	// ...
@@ -801,19 +804,47 @@ static inline bool line_is_wildcard(
 // ...
 ```
 
-With these functions I can write the `do_wildcard` function:
+```c++
+// ...
+	// unit-tests
+	{ // find wildcard
+		line = " a //" " ...";
+		std::string indent;
+		require(line_is_wildcard(indent));
+		require(indent == " a ");
+	}
+	{ // find super wildcard
+		line = " a //" " ....";
+		std::string indent;
+		require(line_is_wildcard(indent));
+		require(indent == " a ");
+	}
+// ...
+```
+
+Damit kann zu guter Letzt die Füll-Funktion angegeben werden:
 
 ```c++
 // ...
 // patch helpers
 
-static inline void do_wildcard(const std::string &indent, File &file, File::iterator &cur) {
-	if (! next()) { err("end of file after wildcard"); }
+template<typename IT>
+static inline bool do_wildcard(
+	const std::string &indent,
+	File &file,
+	IT &cur,
+	bool is_super
+) {
+	if (! next()) {
+		err("end of file after wildcard\n");
+		return false;
+	}
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }
-		if (line != "```" && cur->value() == line) { break; }
+		if (line != "```" && cur->value() == line && ! is_super) { break; }
 		++cur;
 	}
+	return true;
 }
 // ...
 ```

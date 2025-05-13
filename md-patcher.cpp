@@ -19,10 +19,10 @@
 #line 139
 #include "solid/require.h"
 
-#line 939
+#line 970
 bool write_raw { false };
 
-#line 847
+#line 878
 static std::string link_in_line(const std::string &line) {
 	std::string got;
 	auto ci = line.find("](");
@@ -39,7 +39,7 @@ static std::string link_in_line(const std::string &line) {
 static std::string line;
 #line 616
 
-#line 793
+#line 796
 static inline bool line_is_wildcard(
 	std::string &indent
 ) {
@@ -127,7 +127,7 @@ class File : public std::vector<Line> {
 };
 #line 236
 
-#line 887
+#line 918
 void push_parts(std::vector<std::string> &parts, const std::string &path) {
 	if (path.empty()) { return; }
 
@@ -144,7 +144,7 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 }
 #line 287
 std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
-#line 943
+#line 974
 	bool skipping { false };
 	std::string end_line { };
 #line 339
@@ -152,7 +152,7 @@ std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 	int line { 1 };
 #line 288
 	for (const auto &l : f) {
-#line 947
+#line 978
 		if (skipping) {
 			if (l.value() == end_line) {
 				skipping = false;
@@ -197,7 +197,7 @@ std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 		++line;
 #line 290
 	}
-#line 972
+#line 1003
 	if (skipping) { err("no #endif for #if"); }
 #line 291
 	return out;
@@ -220,14 +220,24 @@ static std::map<std::string, File> pool;
 #line 704
 // patch helpers
 
-#line 810
-static inline void do_wildcard(const std::string &indent, File &file, File::iterator &cur) {
-	if (! next()) { err("end of file after wildcard"); }
+#line 831
+template<typename IT>
+static inline bool do_wildcard(
+	const std::string &indent,
+	File &file,
+	IT &cur,
+	bool is_super
+) {
+	if (! next()) {
+		err("end of file after wildcard\n");
+		return false;
+	}
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }
-		if (line != "```" && cur->value() == line) { break; }
+		if (line != "```" && cur->value() == line && ! is_super) { break; }
 		++cur;
 	}
+	return true;
 }
 #line 706
 static inline bool read_patch(File &file) {
@@ -240,7 +250,10 @@ static inline bool read_patch(File &file) {
 		if (line_is_wildcard(indent)) {
 			// do wildcard
 #line 779
-			do_wildcard(indent, file, cur);
+			bool is_super { line.find("//" " ....") != std::string::npos };
+			if (! do_wildcard(indent, file, cur, is_super)) {
+				return false;
+			}
 #line 732
 			continue;
 		} else if (cur != file.end() && line == cur->value()) {
@@ -266,11 +279,24 @@ static inline bool read_patch(File &file) {
 #line 68
 static inline void run_tests() {
 	// unit-tests
-#line 830
+#line 861
 	{ // find file name in line
 		std::string l { "a line with [bla](bla.md) a link" };
 		std::string got { link_in_line(l) };
 		require(got == "bla.md");
+	}
+#line 810
+	{ // find wildcard
+		line = " a //" " ...";
+		std::string indent;
+		require(line_is_wildcard(indent));
+		require(indent == " a ");
+	}
+	{ // find super wildcard
+		line = " a //" " ....";
+		std::string indent;
+		require(line_is_wildcard(indent));
+		require(indent == " a ");
 	}
 #line 651
 	{ // multiple valid filename candidates
@@ -398,7 +424,7 @@ static inline void run_tests() {
 int main(int argc, const char *argv[]) {
 #line 73
 	run_tests();
-#line 977
+#line 1008
 	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
 		write_raw = true; --argc; ++argv;
 	}
@@ -419,18 +445,18 @@ int main(int argc, const char *argv[]) {
 				f = pool.find(cur_file);
 			}
 			if (! read_patch(f->second)) { break; }
-#line 1008
+#line 1039
 			if (cur_file == "/dev/null") { pool.erase(f); }
 #line 596
 		} else {
 			change_cur_file_name(cur_file);
-#line 991
+#line 1022
 			if (line == "<!-- MD-PATCHER EXIT -->") { break; }
-#line 868
+#line 899
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
 				// normalize path
-#line 910
+#line 941
 				std::vector<std::string> parts;
 				if (! sub.empty() && sub[0] != '/') {
 					push_parts(parts, cur_file);
@@ -446,7 +472,7 @@ int main(int argc, const char *argv[]) {
 				}
 				sub = out.str();
 
-#line 871
+#line 902
 				reader.push_front(sub);
 			}
 #line 598

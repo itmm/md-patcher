@@ -1,3 +1,4 @@
+<!-- vim: set spelllang=en noexpandtab: -->
 # md-patcher
 
 `md-patcher` is a program, to extract code fragments out of Markdown files and combine them to
@@ -46,14 +47,8 @@ In contrast to C there are powerful tools in the C++ standard library. Especiall
 welcome the support for strings and containers. On the other hand the generated program is
 fast without a lot of external dependencies.
 
-I build the program with [CMake](https://www.cmake.org). The file
-[CMakeLists.txt](./CMakeLists.txt) contains the configuration.
-
-But there is one problem: `CMake` itself uses `md-patcher` to extract the source code from
-this Markdown file. So I cannot use `CMake` to build the first version of `md-patcher`. To
-solve this problem I added the small script [bootstrap.sh](./bootstrap.sh) that directly
-builds `md-patcher` from the source code files without running `md-patcher`. I can use the
-generated `mdp` executable to make a full `CMake` build run.
+I build the program with [GNU Make](https://www.gnu.org/software/make/). The file
+[Makefile](./Makefile) contains the configuration.
 
 OK, the program does not do much yet. But I can add functionality in small steps. First I add
 code to enable unit-testing. So I can continue the project in Test Driven Design (TDD): first

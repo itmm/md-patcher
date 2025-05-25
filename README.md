@@ -686,10 +686,24 @@ First I test only one matching name:
 ```c++
 // ...
 	// unit-tests
+	{ // no file name change in empty line
+		line = "";
+		std::string f { change_cur_file_name("out.c") };
+		require(f == "out.c");
+	}
+	{ // no file name change in simple line
+		line = "abc x.cpp";
+		std::string f { change_cur_file_name("out.c") };
+		require(f == "out.c");
+	}
+	{ // no file name change in non-path snippets
+		line = "a `Makefile` b";
+		std::string f { change_cur_file_name("out.c") };
+		require(f == "out.c");
+	}
 	{ // multiple filename candidates
 		line = "xx `first` xx `2nd.x` xx `` xx `last` xx";
-		std::string f { "out.c" };
-		f = change_cur_file_name(f);
+		std::string f { change_cur_file_name("out.c") };
 		require(f == "2nd.x");
 	}
 // ...
@@ -697,21 +711,19 @@ First I test only one matching name:
 
 But I also test that the last candidate is chosen:
 
-
 ```c++
 // ...
 	// unit-tests
 	{ // multiple valid filename candidates
 		line = "xx `first` xx `2nd.x` xx `` xx `last.x` xx";
-		std::string f { "out.c" };
-		f = change_cur_file_name(f);
+		std::string f { change_cur_file_name("out.c") };
 		require(f == "last.x");
 	}
 // ...
 ```
 
-In the function `change_cur_file_name` I walk through all candidates and keep the last one
-as the final result:
+In the function `change_cur_file_name` I walk through all candidates and keep
+the last one as the final result:
 
 ```c++
 // ...
@@ -741,16 +753,40 @@ static std::string change_cur_file_name(const std::string &file) {
 // ...
 ```
 
-## Extract Programm Code
+
+## Extract Program Code
 
 I hope you enjoy the piecewise definition of the program.
 
-Before I wrote [`hex`](https://github.com/itmm/hex). It also allows the extraction and
-concatenation of code fragments. But it uses are more complex syntax. `md-patcher` is far
-easier by using the `// ...` comment.
+Before I wrote [`hex`](https://github.com/itmm/hex). It also allows the
+extraction and concatenation of code fragments. But it uses are more complex
+syntax. `md-patcher` is far easier by using the `// ...` comment.
 
-In the function `read-patch` in `md-patcher.cpp` I read a code fragment line by line. During
-that time I have a matching iterator to the previously parsed lines of the current file:
+In the function `read-patch` in `md-patcher.cpp` I read a code fragment line by
+line. During that time I have a matching iterator to the previously parsed
+lines of the current file.
+
+But first add a test:
+
+```c++
+// ...
+	// unit-tests
+	{ // parse simple code block
+		std::istringstream in { "```c\nint a = 2;\nreturn a;\n```\n" };
+		reader.push_front("x.md", in);
+		next();
+		require(line == "```c");
+		File file { "out.c" };
+		require(! read_patch(file));
+		require(file.size() == 2);
+		require(file[0].value() == "int a = 2;");
+		require(file[1].value() == "return a;");
+		reader = Line_Reader_Pool { };
+	}
+// ...
+```
+
+Here is the implementation:
 
 ```c++
 // ...
@@ -773,8 +809,8 @@ static inline bool read_patch(File &file) {
 // ...
 ```
 
-There are three cases to differentiate while parsing code: processing a wildcard line,
-matching a line with the current code version, and inserting a new line into the code file:
+There are two cases to differentiate while parsing code: processing a
+wildcard line, and inserting a new line into the code file:
 
 ```c++
 // ...
@@ -785,9 +821,6 @@ static inline bool read_patch(File &file) {
 		if (line_is_wildcard(indent)) {
 			// do wildcard
 			continue;
-		} else if (cur != file.end() && line == cur->value()) {
-			// lines match
-			++cur;
 		} else {
 			// insert line
 		}
@@ -896,7 +929,11 @@ static inline bool do_wildcard(
 	}
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }
-		if (line != "```" && cur->value() == line && ! is_super) { break; }
+		if (line != "```" && cur->value() == line && ! is_super) {
+			++cur;
+			next();
+			break;
+		}
 		++cur;
 	}
 	return true;

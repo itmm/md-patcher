@@ -1,31 +1,40 @@
 <!-- vim: set spelllang=en noexpandtab: -->
 # md-patcher
 
-`md-patcher` is a program, to extract code fragments out of Markdown files and combine them to
-a compilable program. That is a successor of [hex](https://github.com/itmm/hex) with a far
-clearer syntax, but also with slightly smaller expressive power.
+`md-patcher` is a program, to extract code fragments out of Markdown files and
+combine them to full source code files.  It is a successor of
+[hex](https://github.com/itmm/hex) with a far clearer syntax, but also with
+slightly smaller expressive power.
+
+The main feature is, that your source code can be described in far greater
+detail in the Markdown files. Also it allows to develop the program and not
+present only the final stage.
+
 
 ## General Structure
 
-I use an easy structure for `md-patcher`: I read Markdown files and combines the included code
-fragments to whole source code files. Then I write the resulting files out. I use normal
-inline code fragments to specify the file names of the generated files: each inline code
-fragment that contains at least a period or slash changes the current file name.
+I use an easy structure for `md-patcher`: I read Markdown files and combines
+the included code fragments to whole source code files. Then I write the
+resulting files out. I use normal inline code fragments to specify the file
+names of the generated files: each inline code fragment that contains at least
+a period or slash changes the current file name.
 
-Sometimes I am unsure, if `md-patcher` and I agree about the current file name. So I add the
-file name as an inline code fragment directly before the code fragment. As a benefit, it is
+Sometimes I am unsure, if `md-patcher` and I agree about the current file name.
+So I add the file name as an inline code fragment directly before the code
+fragment. As a benefit, it is
 also easier for the reader to see to with file the fragment belongs.
 
-**Caution**: `md-patcher` does not check, if the file name makes sense. Also in `md-patcher`
-I will not create any directories that are missing in the path.
+**Caution**: `md-patcher` does not check, if the file name makes sense. Also
+in `md-patcher` I will not create any directories that are missing in the path.
 
-By the way: this Markdown file can be used to extract the full source code of `md-patcher`.
-But for that I need a running version of `md-patcher`. So the generated source code is also
-part of the repository to ease the bootstrap process.
+By the way: this Markdown file can be used to extract the full source code of
+`md-patcher`. But for that I need a running version of `md-patcher`. So the
+generated source code is also part of the repository to ease the bootstrap
+process.
 
-I do not need to create the files in one go. I can modify and extend fragments while going
-through this document. So I can start with a birds eye view and drill down later. At every
-step I hopefully have a buildable program.
+I do not need to create the files in one go. I can modify and extend fragments
+while going through this document. So I can start with a birds eye view
+and drill down later. At every step I hopefully have a buildable program.
 
 I started `md-patcher.cpp` this way:
 
@@ -39,23 +48,27 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-I wrote the program in C++. More precisely in the C++20 standard. I believe that this language
-is a good compromise between succinct formulation of solutions and execution speed. For
-additional robustness I use some packets from the `solid` namespace.
+I wrote the program in C++. More precisely in the C++20 standard. I believe
+that this language is a good compromise between succinct formulation of
+solutions and execution speed. For additional robustness I use some packets
+from the `solid` namespace.
 
-In contrast to C there are powerful tools in the C++ standard library. Especially I warmly
-welcome the support for strings and containers. On the other hand the generated program is
-fast without a lot of external dependencies.
+In contrast to C there are powerful tools in the C++ standard library.
+Especially I warmly welcome the support for strings and containers. On the
+other hand the generated program is fast without a lot of external
+dependencies.
 
-I build the program with [GNU Make](https://www.gnu.org/software/make/). The file
-[Makefile](./Makefile) contains the configuration.
+I build the program with [GNU Make](https://www.gnu.org/software/make/). The
+file [Makefile](./Makefile) contains the configuration.
 
-OK, the program does not do much yet. But I can add functionality in small steps. First I add
-code to enable unit-testing. So I can continue the project in Test Driven Design (TDD): first
-write a test, see it fail, fix the test and refactor. I document the results in this Markdown
+OK, the program does not do much yet. But I can add functionality in small
+steps. First I add code to enable unit-testing. So I can continue the project
+in Test Driven Design (TDD): first write a test, see it fail, fix the test and
+refactor (or: remove duplication). I document the results in this Markdown
 file.
 
-I put all unit-tests in a function `run_tests` that I call in `md-patcher.cpp` on every start:
+I put all unit-tests in a function `run_tests` that I call in `md-patcher.cpp`
+on every start:
 
 ```c++
 // ...
@@ -70,8 +83,8 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-If I pass the command line argument `--run-only-tests` I signal, that I only want to run the
-unit-tsts and do not want to process any additional files:
+If I pass the command line argument `--run-only-tests` I signal, that I only
+want to run the unit-tsts and do not want to process any additional files:
 
 ```c++
 #include <cstdlib>
@@ -86,15 +99,18 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
-This argument is used by `CMake` to run the test suite.
+This argument is used by `GNU Make` to run the test suite.
 
-Please note the special comment `// ...`. These comments signal `md-patcher` that it should
-jump over the next lines of the file until it finds a line that matches the line following the
-comment. That allows me to specify the position where the new code will be inserted. If the
-comment is indented it can only jump over lines that have the same prefix.
+Please note the special comment `// ...`. These comments signal `md-patcher`
+that it should jump over the next lines of the file until it finds a line that
+matches the line following the comment. That allows me to specify the position
+where the new code will be inserted.
 
-After processing these three fragments I get the following code, that I redirect to
-`/dev/null` to ignore it:
+If the comment is indented it can only jump over lines that have the same
+prefix.
+
+After processing these three fragments I get the following code, that I
+redirect to `/dev/null` to ignore it:
 
 ```c++
 #include <cstdlib>
@@ -115,16 +131,22 @@ int main(int argc, const char *argv[]) {
 }
 ```
 
+You see that it is a well structured C++ file and a great starting point for
+the program. I actually lied a bit and removed a lot of `#line` macros. These
+are inserted, so the compiler can refer to the position in the Markdown file
+instead of the generated source code. So you can stay in the Markdown file and
+fix warnings and errors directly there.
+
+
 ## The basic objects of `md-patcher`
 
-In this section I describe the classes that I use to store the current state of `md-patcher`.
-Basically that are `File`s that contain `Line`s.
+In this section I describe the classes that I use to store the current state of
+`md-patcher`. Basically that are `File`s that contain `Line`s.
 
-I define a `Line` to be a string that also contains the name of the file from which it was
-extracted and the line number in that file. These original files are the Markdown files that
-are parsed by `md-patcher`. The file name and line number are needed to sprinkle in `#line`
-macros in the generated sources. If an error occurs during compilation, the compiler will
-refer to the markdown file that contains the fragment in which the error occurred.
+I define a `Line` to be a string that also contains the name of the file from
+which it was extracted and the line number in that file. These original files
+are the Markdown files that are parsed by `md-patcher`. The file name and line
+number are needed to sprinkle in `#line` macros in the generated sources.
 
 I start with a test in `md-patcher.cpp`:
 
@@ -145,10 +167,10 @@ I start with a test in `md-patcher.cpp`:
 ```
 
 I use the macro `require` from my project
-[assert-problems](https://github.com/itmm/assert-problems) instead of `assert`. `require` also
-works in release builds, has a more compact output and can be caught in tests. I use it for
-unit-tests and also for the detection of programming errors by checking parameters or loop
-invariants.
+[solid-require](https://github.com/itmm/solid-require) instead of `assert`.
+`require` also works in release builds, has a more compact output and can be
+caught in tests. I use it for unit-tests and also for the detection of
+programming errors by checking parameters or loop invariants.
 
 Here is my implementation of `Line`:
 
@@ -172,13 +194,15 @@ class Line {
 // ...
 ```
 
-I would gladly declare the attributes of this class as `const`. But then I cannot use a
-`std::vector` for storing them: elements can be moved around in an `insert` operation, and
-you can't assign them if some attributes are `const`. So I use the more verbose variant
-with non-`const` attributes and `public:` accessors.
+I would gladly declare the attributes of this class as `const`. But then I
+cannot use a `std::vector` for storing them: elements can be moved around in an
+`insert` operation, and you can't assign them if some attributes are `const`.
+So I use the more verbose variant with non-`const` attributes and `public:`
+accessors. But apart from the automatically generated `operator=` no method
+will change any attributes.
 
-Next I define a `File`. That is basically a vector of `Line`s plus a file path. Again I start
-with a test:
+Next I define a `File`. That is basically a vector of `Line`s plus a file path.
+Again I start with a test:
 
 ```c++
 // ...
@@ -191,12 +215,10 @@ with a test:
 // ...
 ```
 
-`md-patcher` orders the unit-tests in the reverse direction: the second test is the first to
-run. This is because the tests are inserted after the `// unit-tests` line. But it has the
-nice side effect that the lastest test is run first.
-
-But to achieve that, every test must start with a unique line. That is one reason why I start
-each test with a small description of it.
+`md-patcher` orders the unit-tests in the reverse direction: the second test is
+the first to run. This is because the tests are inserted after the
+`// unit-tests` line. But it has the nice side effect that the lastest test is
+run first.
 
 This is my implementation of `File` in `md-patcher.cpp` to make the test pass:
 
@@ -234,11 +256,13 @@ static std::map<std::string, File> pool;
 // ...
 ```
 
+
 ## Output
 
-I am starting at the end of the process and look at the output. I write all lines from all
-files out into the corresponding files. The first test case checks that an empty file can
-be written. Instead of files I use strings to simplify the tests:
+I am starting at the end of the process and look at the output. I write all
+lines from all files out into the corresponding files. The first test case
+checks that an empty file can be written. Instead of files I use strings to
+simplify and speed up the tests:
 
 ```c++
 // ...
@@ -251,8 +275,8 @@ be written. Instead of files I use strings to simplify the tests:
 // ...
 ```
 
-I define the missing function `write_file_to_string` via another function that writes a `File`
-into a stream:
+I define the missing function `write_file_to_string` via another function that
+writes a `File` into a stream:
 
 ```c++
 // ...
@@ -304,9 +328,9 @@ The next test checks that the correct content is written into non-empty files:
 // ...
 ```
 
-The lines in a file can be non-continuous. In this case I need to insert a `#line` macro
-to adjust the line counter of the compiler to the refer to the correct source line. First
-I write a test for this scenario:
+The lines in a file can be non-continuous. In this case I need to insert a
+`#line` macro to adjust the line counter of the compiler to the refer to the
+correct source line. First I write a test for this scenario:
 
 ```c++
 // ...
@@ -322,8 +346,9 @@ I write a test for this scenario:
 // ...
 ```
 
-I need to know, when I must add a `#line` macro. So I count the lines in parallel. If the next
-line number is not the expected one, a `#line` macro must be inserted:
+I need to know, when I must add a `#line` macro. So I count the lines in
+parallel. If the next line number is not the expected one, a `#line` macro must
+be inserted:
 
 ```c++
 // ...
@@ -358,9 +383,32 @@ Here I write the macro:
 // ...
 ```
 
-I cannot insert `#line` in every file. Only can C/C++ files can contain this macro. So I can
-only insert them in files whose path ends in `.h`, `.c`, or `.cpp`. In `md-patcher.cpp` I
-set a flag in the constructor that reflects the ability to insert `#line` macros:
+I cannot insert `#line` in every file. Only can C/C++ files can contain this
+macro. So I can only insert them in files whose path ends in `.h`, `.c`, or
+`.cpp`. In `md-patcher.cpp` I set a flag in the constructor that reflects the
+ability to insert `#line` macros. First a test:
+
+```c++
+// ...
+	// unit-tests
+	{ // check that file extension is honoured
+		File fc { "out.c" };
+		require(fc.with_lines);
+		File fh { "out.h" };
+		require(fh.with_lines);
+		File fcpp { "out.cpp" };
+		require(fcpp.with_lines);
+		File no { "out_c" };
+		require(! no.with_lines);
+		File fjava { "out.java" };
+		require(! fjava.with_lines);
+		File fm { "Makefile" };
+		require(! fm.with_lines);
+	}
+// ...
+```
+
+And here is the implementation to make the test pass:
 
 ```c++
 // ...
@@ -439,10 +487,12 @@ Also, I must insert a `#line` macro if the input file changes:
 // ...
 ```
 
-For the output I use the library [`lazy-write`](https://github.com/itmm/lazy-write). It only
-writes to file if it changes. So if the generated file is the same one as the one already
-present, the existing file will not be touched. That eases the interplay with tools like
-'Make'. I use the stream class `Lazy_Write` to write the file out:
+For the output I use the library
+[`lazy-write`](https://github.com/itmm/lazy-write). It only writes to file if
+it changes. So if the generated file is the same one as the one already
+present, the existing file will not be touched. That eases the interplay with
+tools like 'GNU Make'. I use the stream class `Lazy_Write` to write the file
+out:
 
 ```c++
 // ...
@@ -460,6 +510,8 @@ inline void write_file(const File &f) {
 // ...
 ```
 
+Note that `Lazy_Write` is a subtype of `std::ostream`.
+
 I can now complete the output:
 
 ```c++
@@ -471,10 +523,12 @@ I can now complete the output:
 // ...
 ```
 
+
 ## Reading the Input
 
-For reading the input I use the library [`line-reader`](https://github.com/itmm/line-reader).
-The class `Line_Reader_Pool` contains a list of open files and keeps the paths and line
+For reading the input I use the library
+[`line-reader`](https://github.com/itmm/line-reader).  The class
+`Line_Reader_Pool` contains a list of open files and keeps the paths and line
 numbers for each of it:
 
 ```c++
@@ -491,16 +545,17 @@ static bool next() {
 }
 
 void err(const std::string& message) {
-	std::cerr << reader.pos().file_name() << ':' << reader.pos().line() << ' ' <<
-		message << '\n';
+	std::cerr << reader.pos().file_name() << ':' << reader.pos().line() <<
+		' ' << message << '\n';
 	require(false && "error occurred");
 }
 
 // ...
 ```
 
-The method `next` returns the next line and `pos` returns the information about this line. In
-the following tests I show how to handle it. First I have a test with one file:
+The method `next` returns the next line and `pos` returns the information
+about this line. In the following tests I show how to handle it. First I have a 
+test with one file:
 
 ```c++
 // ...
@@ -523,8 +578,8 @@ the following tests I show how to handle it. First I have a test with one file:
 // ...
 ```
 
-I can also queue multiple files. As soon as one file ends, the content will be fetched from
-the next one:
+I can also queue multiple files. As soon as one file ends, the content will be
+fetched from the next one:
 
 ```c++
 // ...
@@ -572,8 +627,9 @@ I can also include `#line` macros in the input:
 // ...
 ```
 
-So I can add the reading of the input in the `main` function of `md-patcher.cpp`. So I still
-have to implement the called functions:
+So I can add the reading of the input in the `main` function of
+`md-patcher.cpp`. I still have to implement the called functions `starts_with`,
+`read_patch`, and `change_cur_file_name`:
 
 ```c++
 // ...
@@ -589,18 +645,19 @@ have to implement the called functions:
 			}
 			if (! read_patch(f->second)) { break; }
 		} else {
-			change_cur_file_name(cur_file);
+			cur_file = change_cur_file_name(cur_file);
 			if (! next()) { break; }
 		}
 	}
 // ...
 ```
 
-I read lines until I reach the end. I do not parse code blocks without a syntax specification.
-That is a small trick to uncomment blocks during the debugging phase.
+I read lines until I reach the end. I do not parse code blocks without a
+syntax specification.  That is a small trick to uncomment blocks during the
+debugging phase.
 
-In the function `starts_with` in `md-patcher.cpp` I check, if a string starts with the
-specified sequence of chars:
+In the function `starts_with` I check, if a string starts with the specified
+sequence of chars:
 
 ```c++
 // ...
@@ -614,14 +671,15 @@ static bool starts_with(
 	const std::string &prefix
 ) {
 	if (prefix.empty()) { return true; }
-	return base.size() >= prefix.size() && base.substr(0, prefix.size()) == prefix;
+	return base.size() >= prefix.size() &&
+		base.substr(0, prefix.size()) == prefix;
 }
 // ...
 ```
 
-Also I check if the file paths are found correctly. The characters between two backticks are
-only a file path, if they contain at least one slash or period. The last candidate in a line
-is the new file path.
+Also I check if the file paths are found correctly. The characters between two
+backticks are only a file path, if they contain at least one slash or period.
+The last candidate in a line is the new file path.
 
 First I test only one matching name:
 
@@ -631,7 +689,7 @@ First I test only one matching name:
 	{ // multiple filename candidates
 		line = "xx `first` xx `2nd.x` xx `` xx `last` xx";
 		std::string f { "out.c" };
-		change_cur_file_name(f);
+		f = change_cur_file_name(f);
 		require(f == "2nd.x");
 	}
 // ...
@@ -646,7 +704,7 @@ But I also test that the last candidate is chosen:
 	{ // multiple valid filename candidates
 		line = "xx `first` xx `2nd.x` xx `` xx `last.x` xx";
 		std::string f { "out.c" };
-		change_cur_file_name(f);
+		f = change_cur_file_name(f);
 		require(f == "last.x");
 	}
 // ...
@@ -663,7 +721,8 @@ as the final result:
 // ...
 static std::string line;
 
-static void change_cur_file_name(std::string &file) {
+static std::string change_cur_file_name(const std::string &file) {
+	std::string result { file };
 	size_t start { 0 };
 	for (;;) {
 		auto begin { line.find('`', start) };
@@ -674,9 +733,10 @@ static void change_cur_file_name(std::string &file) {
 		if (
 			got.find('.') != std::string::npos ||
 			got.find('/') != std::string::npos
-		) { file = got; }
+		) { result = got; }
 		start = end + 1;
 	}
+	return result;
 }
 // ...
 ```
@@ -890,7 +950,7 @@ continue from this file:
 
 ```c++
 // ...
-			change_cur_file_name(cur_file);
+			cur_file = change_cur_file_name(cur_file);
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
 				// normalize path
@@ -1013,7 +1073,7 @@ find errors during debugging of the Markdown document:
 
 ```c++
 // ...
-			change_cur_file_name(cur_file);
+			cur_file = change_cur_file_name(cur_file);
 			if (line == "<!-- MD-PATCHER EXIT -->") { break; }
 // ...
 ```

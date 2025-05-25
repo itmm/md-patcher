@@ -81,6 +81,7 @@ int main(int argc, const char *argv[]) {
 	run_tests();
 	// ...
 }
+// ...
 ```
 
 If I pass the command line argument `--run-only-tests` I signal, that I only
@@ -821,6 +822,9 @@ static inline bool read_patch(File &file) {
 		if (line_is_wildcard(indent)) {
 			// do wildcard
 			continue;
+		} else if (cur != file.end() && line == cur->value()) {
+			// lines match
+			++cur;
 		} else {
 			// insert line
 		}

@@ -542,7 +542,7 @@ static bool next() {
 	return reader.next(line);
 }
 
-void err(const std::string& message) {
+bool err(const std::string& message) {
 	std::cerr << reader.pos().file_name() << ':' << reader.pos().line() <<
 		' ' << message << '\n';
 	require(false && "error occurred");
@@ -793,9 +793,9 @@ static inline bool read_patch(File &file) {
 	std::string indent;
 	while (line != "```") {
 		// handle code
-		if (! next()) { err("end of file in code block"); }
+		if (! next()) { return err("end of file in code block"); }
 	}
-	if (cur != file.end()) { err("incomplete patch"); }
+	if (cur != file.end()) { return err("incomplete patch"); }
 	return next();
 }
 
@@ -810,7 +810,8 @@ wildcard line, and inserting a new line into the code file:
 static inline bool read_patch(File &file) {
 	// ...
 		// handle code
-		if (line_is_wildcard(indent)) {
+		std::string extension;
+		if (line_is_wildcard(indent, extension)) {
 			// do wildcard
 			continue;
 		} else {
@@ -844,8 +845,7 @@ recognize premature termination of the wildcard skipping:
 static inline bool read_patch(File &file) {
 	// ...
 			// do wildcard
-			bool is_super { line.find("//" " ....") != std::string::npos };
-			if (! do_wildcard(indent, file, cur, is_super)) {
+			if (! do_wildcard(indent, file, cur, extension)) {
 				return false;
 			}
 // ...
@@ -858,11 +858,13 @@ In the following function I recognize, if a wildcard comment is present:
 static std::string line;
 
 static inline bool line_is_wildcard(
-	std::string &indent
+	std::string& indent, std::string& extension
 ) {
-	auto idx = line.find("//" " ...");
+	const char pattern[] = "//" " ...";
+	auto idx = line.find(pattern);
 	if (idx == std::string::npos) { return false; }
 	indent = line.substr(0, idx);
+	extension = line.substr(idx + sizeof(pattern) - 1);
 	return true;
 }
 // ...
@@ -874,14 +876,18 @@ static inline bool line_is_wildcard(
 	{ // find wildcard
 		line = " a //" " ...";
 		std::string indent;
-		require(line_is_wildcard(indent));
+		std::string extension;
+		require(line_is_wildcard(indent, extension));
 		require(indent == " a ");
+		require(extension == "");
 	}
 	{ // find super wildcard
 		line = " a //" " ....";
 		std::string indent;
-		require(line_is_wildcard(indent));
+		std::string extension;
+		require(line_is_wildcard(indent, extension));
 		require(indent == " a ");
+		require(extension == ".");
 	}
 // ...
 ```
@@ -897,18 +903,31 @@ static inline bool do_wildcard(
 	const std::string &indent,
 	File &file,
 	IT &cur,
-	bool is_super
+	const std::string& extension
 ) {
+	int repeats { 1 };
+	if (extension.length() > 0 && std::isdigit(extension[0])) {
+		repeats = 0;
+		for (char c : extension) {
+			if (! isdigit(c)) { return err("nodigit in numeric extension"); }
+			int digit = c - '0';
+			if ((std::numeric_limits<int>::max() - digit) / 10 < repeats) {
+				return err("number too big");
+			}
+			repeats = repeats * 10 + digit;
+		}
+		repeats = extension[0] - '0';
+	}
+	if (extension == ".") { repeats = 0; }
 	if (! next()) {
-		err("end of file after wildcard\n");
-		return false;
+		return err("end of file after wildcard\n");
 	}
 	while (cur != file.end()) { 
 		if (! starts_with(cur->value(), indent)) { break; }
-		if (line != "```" && cur->value() == line && ! is_super) {
+		if (line != "```" && cur->value() == line) {
 			++cur;
 			next();
-			break;
+			if (! --repeats) { break; }
 		}
 		++cur;
 	}
@@ -1070,7 +1089,7 @@ std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 		}
 	// ...
 	}
-	if (skipping) { err("no #endif for #if"); }
+	if (skipping) { err("no #endif for #if"); return out; }
 // ...
 	run_tests();
 	if (argc >= 2 && argv[1] == std::string { "--raw" }) {

@@ -77,10 +77,9 @@ static inline void run_tests() {
 	// unit-tests
 }
 
+// ...
 int main(int argc, const char *argv[]) {
 	run_tests();
-	// ...
-}
 // ...
 ```
 
@@ -88,6 +87,7 @@ If I pass the command line argument `--run-only-tests` I signal, that I only
 want to run the unit-tsts and do not want to process any additional files:
 
 ```c++
+// ...
 #include <cstdlib>
 #include <string>
 // ...
@@ -96,8 +96,7 @@ int main(int argc, const char *argv[]) {
 	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
 		return EXIT_SUCCESS;
 	}
-	// ...
-}
+// ...
 ```
 
 This argument is used by `GNU Make` to run the test suite.
@@ -229,7 +228,7 @@ This is my implementation of `File` in `md-patcher.cpp` to make the test pass:
 #include <vector>
 // ...
 class Line {
-	// ...
+// ...
 };
 
 class File : public std::vector<Line> {
@@ -245,11 +244,12 @@ class File : public std::vector<Line> {
 I collect all open files in a pool:
 
 ```c++
+// ...
 #include <cstdlib>
 #include <map>
 // ...
 class File : public std::vector<Line> {
-	// ...
+// ...
 };
 
 static std::map<std::string, File> pool;
@@ -285,7 +285,7 @@ writes a `File` into a stream:
 #include <sstream>
 // ...
 class File : public std::vector<Line> {
-	// ...
+// ...
 };
 
 std::string write_file_to_string(const File &f) {
@@ -301,7 +301,7 @@ The function `write_file_to_stream` uses a `std::ostream` to write a `File`:
 ```c++
 // ...
 class File : public std::vector<Line> {
-	// ...
+// ...
 };
 
 std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
@@ -359,17 +359,16 @@ be inserted:
 std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 	std::string name { "-" };
 	int line { 1 };
+	// ...
 	for (const auto &l : f) {
 		if (line != l.number() || name != l.file()) {
 			// write line macro
 			line = l.number();
 			name = l.file();
 		}
+		// ...
 		out << l.value(); out.put('\n');
 		++line;
-	}
-	return out;
-}
 // ...
 ```
 
@@ -418,14 +417,12 @@ class File : public std::vector<Line> {
 			std::string ext { get_extension(name) };
 			return ext == "h" || ext == "c" || ext == "cpp";
 		}
+	// ...
 	public:
 		const bool with_lines;
 		// ...
 		File(const std::string &name):
 			with_lines { with_lines_(name) },
-			name { name }
-		// ...
-};
 // ...
 ```
 
@@ -501,7 +498,7 @@ out:
 #include "lazy-write/lazy-write.h"
 // ...
 std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
-	// ...
+// ...
 }
 
 inline void write_file(const File &f) {
@@ -540,7 +537,7 @@ numbers for each of it:
 
 static std::string line;
 static Line_Reader_Pool reader;
-static bool do_match { true };
+static bool do_match { false };
 
 static bool next() {
 	return reader.next(line);
@@ -665,7 +662,6 @@ sequence of chars:
 // ...
 
 // ...
-
 static std::string line;
 
 static bool starts_with(
@@ -728,10 +724,6 @@ In the function `change_cur_file_name` I walk through all candidates and keep
 the last one as the final result:
 
 ```c++
-// ...
-
-// ...
-
 // ...
 static std::string line;
 
@@ -818,7 +810,6 @@ wildcard line, and inserting a new line into the code file:
 // ...
 static inline bool read_patch(File &file) {
 	// ...
-	while (line != "```") {
 		// handle code
 		if (line_is_wildcard(indent)) {
 			// do wildcard
@@ -829,54 +820,38 @@ static inline bool read_patch(File &file) {
 		} else {
 			// insert line
 		}
-		// ...
-	}
-	// ...
-}
 // ...
 ```
 
-Due to my special `insert` implememntation in `File`, the returned iterator is valid after
-the insertion:
+Due to my special `insert` implementation in `File`, the returned iterator is
+valid after the insertion:
 
 ```c++
 // ...
 static inline bool read_patch(File &file) {
 	// ...
-	while (line != "```") {
-		// ...
 			// insert line
 			cur = ++file.insert(
 				cur, Line {
 					line, reader.pos().file_name(), reader.pos().line()
 				}
 			);
-		// ...
-	}
-	// ...
-}
 // ...
 ```
 
-When I recognize a wildcard comment, I store the prefix before the comment in the variable
-`indent`. That variable I pass to the `do_wildcard` function to recognize premature
-termination of the wildcard skipping:
+When I recognize a wildcard comment, I store the prefix before the comment in
+the variable `indent`. That variable I pass to the `do_wildcard` function to
+recognize premature termination of the wildcard skipping:
 
 ```c++
 // ...
 static inline bool read_patch(File &file) {
 	// ...
-	while (line != "```") {
-		// ...
 			// do wildcard
 			bool is_super { line.find("//" " ....") != std::string::npos };
 			if (! do_wildcard(indent, file, cur, is_super)) {
 				return false;
 			}
-		// ...
-	}
-	// ...
-}
 // ...
 ```
 
@@ -948,9 +923,9 @@ static inline bool do_wildcard(
 
 ## Handle Includes
 
-If I link from one Markdown file to another Markdown file, I also want to process the referred
-file. That simplifies the call of `md-patcher`. I will write a function, that extracts a link
-from the Markdown line:
+If I link from one Markdown file to another Markdown file, I also want to
+process the referred file. That simplifies the call of `md-patcher`. I will
+write a function, that extracts a link from the Markdown line:
 
 ```c++
 // ...
@@ -963,7 +938,8 @@ from the Markdown line:
 // ...
 ```
 
-Only one link can be extracted! So you have to split a line with multiple links.
+Only one link can be extracted! So you have to split a line with multiple
+links.
 
 I implement the function in the following way:
 
@@ -987,8 +963,8 @@ static std::string link_in_line(const std::string &line) {
 // ...
 ```
 
-I have to check that the link points to a Markdown file. If so, I redirect the input to
-continue from this file:
+I have to check that the link points to a Markdown file. If so, I redirect the
+input to continue from this file:
 
 ```c++
 // ...
@@ -1003,8 +979,9 @@ continue from this file:
 
 ### Normalizing Paths
 
-To normalize a file path, I split it into its components first. Then I ignore `.` components
-and remove a component for each `..` that occurs. This is the change in `md-patcher.cpp`:
+To normalize a file path, I split it into its components first. Then I ignore
+`.` components and remove a component for each `..` that occurs. This is the
+change in `md-patcher.cpp`:
 
 ```c++
 // ...
@@ -1029,8 +1006,8 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 // ...
 ```
 
-If I run into a relative path, I take the path of the current file and add the relative
-components:
+If I run into a relative path, I take the path of the current file and add the
+relative components:
 
 ```c++
 // ...
@@ -1055,9 +1032,9 @@ components:
 
 ## Writing `--raw` Output
 
-I normally don't write any parts that are commented out with `#if 0`. But I sometimes need
-these blocks during debugging. So I add an command line argument `--raw`. If this is present,
-I keep the blocks in the output:
+I normally don't write any parts that are commented out with `#if 0`. But I
+sometimes need these blocks during debugging. So I add an command line argument
+`--raw`. If this is present, I keep the blocks in the output:
 
 ```c++
 // ...
@@ -1095,11 +1072,9 @@ std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 				continue;
 			}
 		}
-		// ...
+	// ...
 	}
 	if (skipping) { err("no #endif for #if"); }
-	// ...
-}
 // ...
 	run_tests();
 	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
@@ -1110,8 +1085,8 @@ std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 
 ## Early Exit Comment
 
-Also I add a special comment, that stops the processing of a file. With that comment I can
-find errors during debugging of the Markdown document:
+Also I add a special comment, that stops the processing of a file. With that
+comment I can find errors during debugging of the Markdown document:
 
 ```c++
 // ...
@@ -1120,15 +1095,17 @@ find errors during debugging of the Markdown document:
 // ...
 ```
 
-That is the complete source code. You can use this Markdown file to extract the source code
-with `md-patcher` and build `md-patcher` from scratch. Have fun!
+That is the complete source code. You can use this Markdown file to extract the
+source code with `md-patcher` and build `md-patcher` from scratch. Have fun!
 
 ## Don't write to `/dev/null`
 
-I add one change to not keep any lines that are written to `/dev/null`. That way, multiple
-writes to that file do not need to add comments to skip over existing lines.
+I add one change to not keep any lines that are written to `/dev/null`. That
+way, multiple writes to that file do not need to add comments to skip over
+existing lines.
 
-The change in `md-patcher.cpp` is minute: I just remove the file after processing it:
+The change in `md-patcher.cpp` is minute: I just remove the file after
+processing it:
 
 ```c++
 // ...

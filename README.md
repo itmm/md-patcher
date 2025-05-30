@@ -537,7 +537,6 @@ numbers for each of it:
 
 static std::string line;
 static Line_Reader_Pool reader;
-static bool do_match { false };
 
 static bool next() {
 	return reader.next(line);
@@ -814,9 +813,6 @@ static inline bool read_patch(File &file) {
 		if (line_is_wildcard(indent)) {
 			// do wildcard
 			continue;
-		} else if (do_match && cur != file.end() && line == cur->value()) {
-			// lines match
-			++cur;
 		} else {
 			// insert line
 		}

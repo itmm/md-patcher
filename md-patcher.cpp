@@ -19,10 +19,10 @@
 #line 156
 #include "solid/require.h"
 
-#line 1044
+#line 1040
 bool write_raw { false };
 
-#line 951
+#line 947
 static std::string link_in_line(const std::string &line) {
 	std::string got;
 	auto ci = line.find("](");
@@ -37,7 +37,7 @@ static std::string link_in_line(const std::string &line) {
 }
 #line 538
 static std::string line;
-#line 863
+#line 859
 
 static inline bool line_is_wildcard(
 	std::string &indent
@@ -47,7 +47,7 @@ static inline bool line_is_wildcard(
 	indent = line.substr(0, idx);
 	return true;
 }
-#line 729
+#line 728
 
 static std::string change_cur_file_name(const std::string &file) {
 	std::string result { file };
@@ -66,7 +66,7 @@ static std::string change_cur_file_name(const std::string &file) {
 	}
 	return result;
 }
-#line 666
+#line 665
 
 static bool starts_with(
 	const std::string &base,
@@ -78,7 +78,6 @@ static bool starts_with(
 }
 #line 539
 static Line_Reader_Pool reader;
-static bool do_match { false };
 
 static bool next() {
 	return reader.next(line);
@@ -130,7 +129,7 @@ class File : public std::vector<Line> {
 		{ }
 		const std::string name;
 };
-#line 991
+#line 987
 
 void push_parts(std::vector<std::string> &parts, const std::string &path) {
 	if (path.empty()) { return; }
@@ -149,7 +148,7 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 #line 306
 
 std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
-#line 1048
+#line 1044
 	bool skipping { false };
 	std::string end_line { };
 #line 360
@@ -157,7 +156,7 @@ std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 	int line { 1 };
 #line 308
 	for (const auto &l : f) {
-#line 1052
+#line 1048
 		if (skipping) {
 			if (l.value() == end_line) {
 				skipping = false;
@@ -202,7 +201,7 @@ std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 		++line;
 #line 310
 	}
-#line 1077
+#line 1073
 	if (skipping) { err("no #endif for #if"); }
 #line 311
 	return out;
@@ -223,10 +222,10 @@ std::string write_file_to_string(const File &f) {
 #line 254
 
 static std::map<std::string, File> pool;
-#line 788
+#line 787
 
 // patch helpers
-#line 898
+#line 894
 
 template<typename IT>
 static inline bool do_wildcard(
@@ -250,7 +249,7 @@ static inline bool do_wildcard(
 	}
 	return true;
 }
-#line 790
+#line 789
 
 static inline bool read_patch(File &file) {
 	if (! next()) { return false; }
@@ -258,30 +257,27 @@ static inline bool read_patch(File &file) {
 	std::string indent;
 	while (line != "```") {
 		// handle code
-#line 814
+#line 813
 		if (line_is_wildcard(indent)) {
 			// do wildcard
-#line 851
+#line 847
 			bool is_super { line.find("//" " ....") != std::string::npos };
 			if (! do_wildcard(indent, file, cur, is_super)) {
 				return false;
 			}
-#line 816
+#line 815
 			continue;
-		} else if (do_match && cur != file.end() && line == cur->value()) {
-			// lines match
-			++cur;
 		} else {
 			// insert line
-#line 834
+#line 830
 			cur = ++file.insert(
 				cur, Line {
 					line, reader.pos().file_name(), reader.pos().line()
 				}
 			);
-#line 822
+#line 818
 		}
-#line 797
+#line 796
 		if (! next()) { err("end of file in code block"); }
 	}
 	if (cur != file.end()) { err("incomplete patch"); }
@@ -293,13 +289,13 @@ static inline bool read_patch(File &file) {
 #line 76
 static inline void run_tests() {
 	// unit-tests
-#line 933
+#line 929
 	{ // find file name in line
 		std::string l { "a line with [bla](bla.md) a link" };
 		std::string got { link_in_line(l) };
 		require(got == "bla.md");
 	}
-#line 878
+#line 874
 	{ // find wildcard
 		line = " a //" " ...";
 		std::string indent;
@@ -312,7 +308,7 @@ static inline void run_tests() {
 		require(line_is_wildcard(indent));
 		require(indent == " a ");
 	}
-#line 768
+#line 767
 	{ // parse simple code block
 		std::istringstream in { "```c\nint a = 2;\nreturn a;\n```\n" };
 		reader.push_front("x.md", in);
@@ -325,13 +321,13 @@ static inline void run_tests() {
 		require(file[1].value() == "return a;");
 		reader = Line_Reader_Pool { };
 	}
-#line 715
+#line 714
 	{ // multiple valid filename candidates
 		line = "xx `first` xx `2nd.x` xx `` xx `last.x` xx";
 		std::string f { change_cur_file_name("out.c") };
 		require(f == "last.x");
 	}
-#line 687
+#line 686
 	{ // no file name change in empty line
 		line = "";
 		std::string f { change_cur_file_name("out.c") };
@@ -352,7 +348,7 @@ static inline void run_tests() {
 		std::string f { change_cur_file_name("out.c") };
 		require(f == "2nd.x");
 	}
-#line 611
+#line 610
 	{ // reading lines with line macro
 		Line_Reader_Pool pool;
 		std::istringstream in { "abc\n#line 3 \"z\"\ndef" };
@@ -368,7 +364,7 @@ static inline void run_tests() {
 		require(pool.pos().line() == 3);
 		require(! pool.next(line));
 	}
-#line 586
+#line 585
 	{ // reading lines from multiple files
 		Line_Reader_Pool pool;
 		std::istringstream in1 { "abc" };
@@ -386,7 +382,7 @@ static inline void run_tests() {
 		require(pool.pos().line() == 1);
 		require(! pool.next(line));
 	}
-#line 562
+#line 561
 	{ // reading lines
 		Line_Reader_Pool pool;
 		std::istringstream in { "abc\ndef\n" };
@@ -479,7 +475,7 @@ static inline void run_tests() {
 int main(int argc, const char *argv[]) {
 #line 95
 	run_tests();
-#line 1080
+#line 1076
 	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
 		write_raw = true; --argc; ++argv;
 	}
@@ -491,7 +487,7 @@ int main(int argc, const char *argv[]) {
 	run_tests();
 #line 45
 	// parse input
-#line 636
+#line 635
 	reader.populate(argc, argv);
 	std::string cur_file { "out.txt" };
 	if (next()) for (;;) {
@@ -502,18 +498,18 @@ int main(int argc, const char *argv[]) {
 				f = pool.find(cur_file);
 			}
 			if (! read_patch(f->second)) { break; }
-#line 1113
+#line 1109
 			if (cur_file == "/dev/null") { pool.erase(f); }
-#line 646
+#line 645
 		} else {
 			cur_file = change_cur_file_name(cur_file);
-#line 1094
+#line 1090
 			if (line == "<!-- MD-PATCHER EXIT -->") { break; }
-#line 972
+#line 968
 			auto sub { link_in_line(line) };
 			if (sub.size() > 3 && sub.rfind(".md") == sub.size() - 3) {
 				// normalize path
-#line 1015
+#line 1011
 				std::vector<std::string> parts;
 				if (! sub.empty() && sub[0] != '/') {
 					push_parts(parts, cur_file);
@@ -529,10 +525,10 @@ int main(int argc, const char *argv[]) {
 				}
 				sub = out.str();
 
-#line 975
+#line 971
 				reader.push_front(sub);
 			}
-#line 648
+#line 647
 			if (! next()) { break; }
 		}
 	}

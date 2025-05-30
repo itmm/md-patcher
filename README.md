@@ -175,9 +175,7 @@ programming errors by checking parameters or loop invariants.
 Here is my implementation of `Line`:
 
 ```c++
-// ...
-
-// ...
+// ...2
 
 class Line {
 		std::string value_;
@@ -441,9 +439,7 @@ I only write `#line` macros, if the flag is set:
 I have to add the function to extract the extension:
 
 ```c++
-// ...
-
-// ...
+// ...2
 
 std::string get_extension(std::string path) {
 	auto got { path.rfind('.') };
@@ -531,9 +527,10 @@ numbers for each of it:
 
 ```c++
 // ...
+
 #include "lazy-write/lazy-write.h"
 #include "line-reader/line-reader.h"
-// ...
+#include "solid/require.h"
 
 static std::string line;
 static Line_Reader_Pool reader;
@@ -546,6 +543,7 @@ bool err(const std::string& message) {
 	std::cerr << reader.pos().file_name() << ':' << reader.pos().line() <<
 		' ' << message << '\n';
 	require(false && "error occurred");
+	return false;
 }
 
 // ...
@@ -658,8 +656,6 @@ In the function `starts_with` I check, if a string starts with the specified
 sequence of chars:
 
 ```c++
-// ...
-
 // ...
 static std::string line;
 
@@ -926,10 +922,10 @@ static inline bool do_wildcard(
 		if (! starts_with(cur->value(), indent)) { break; }
 		if (line != "```" && cur->value() == line) {
 			++cur;
-			next();
-			if (! --repeats) { break; }
+			if (! --repeats) { next(); break; }
+		} else {
+			++cur;
 		}
-		++cur;
 	}
 	return true;
 }
@@ -959,9 +955,7 @@ links.
 I implement the function in the following way:
 
 ```c++
-// ...
-
-// ...
+// ...2
 
 static std::string link_in_line(const std::string &line) {
 	std::string got;
@@ -1052,9 +1046,7 @@ sometimes need these blocks during debugging. So I add an command line argument
 `--raw`. If this is present, I keep the blocks in the output:
 
 ```c++
-// ...
-
-// ...
+// ...2
 
 bool write_raw { false };
 

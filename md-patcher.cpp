@@ -12,11 +12,6 @@
 #include <vector>
 #line 43
 
-#line 531
-#include "lazy-write/lazy-write.h"
-#include "line-reader/line-reader.h"
-#include "solid/require.h"
-
 #line 1051
 bool write_raw { false };
 
@@ -33,10 +28,16 @@ static std::string link_in_line(const std::string &line) {
 	}
 	return got;
 }
-#line 535
-static std::string line;
-#line 855
+#line 494
+#include "lazy-write/lazy-write.h"
+#line 532
+#include "line-reader/line-reader.h"
+#include "solid/require.h"
 
+static std::string line;
+#line 661
+
+#line 856
 static inline bool line_is_wildcard(
 	std::string& indent, std::string& extension
 ) {
@@ -47,8 +48,7 @@ static inline bool line_is_wildcard(
 	extension = line.substr(idx + sizeof(pattern) - 1);
 	return true;
 }
-#line 724
-
+#line 725
 static std::string change_cur_file_name(const std::string &file) {
 	std::string result { file };
 	size_t start { 0 };
@@ -66,8 +66,7 @@ static std::string change_cur_file_name(const std::string &file) {
 	}
 	return result;
 }
-#line 661
-
+#line 662
 static bool starts_with(
 	const std::string &base,
 	const std::string &prefix
@@ -89,11 +88,6 @@ bool err(const std::string& message) {
 	require(false && "error occurred");
 	return false;
 }
-
-#line 494
-#include "lazy-write/lazy-write.h"
-#line 156
-#include "solid/require.h"
 
 #line 444
 std::string get_extension(std::string path) {
@@ -135,8 +129,9 @@ class File : public std::vector<Line> {
 		{ }
 		const std::string name;
 };
-#line 1000
+#line 252
 
+#line 1001
 void push_parts(std::vector<std::string> &parts, const std::string &path) {
 	if (path.empty()) { return; }
 
@@ -151,8 +146,7 @@ void push_parts(std::vector<std::string> &parts, const std::string &path) {
 		parts.push_back(part);
 	}
 }
-#line 304
-
+#line 305
 std::ostream& write_file_to_stream(const File &f, std::ostream& out) {
 #line 1055
 	bool skipping { false };
@@ -218,21 +212,19 @@ inline void write_file(const File &f) {
 	Lazy_Write out { f.name };
 	write_file_to_stream(f, out);
 }
-#line 288
-
+#line 289
 std::string write_file_to_string(const File &f) {
 	std::ostringstream out;
 	write_file_to_stream(f, out);
 	return out.str();
 }
-#line 252
-
+#line 253
 static std::map<std::string, File> pool;
-#line 783
 
+#line 784
 // patch helpers
-#line 896
 
+#line 897
 template<typename IT>
 static inline bool do_wildcard(
 	const std::string &indent,
@@ -268,8 +260,7 @@ static inline bool do_wildcard(
 	}
 	return true;
 }
-#line 785
-
+#line 786
 static inline bool read_patch(File &file) {
 	if (! next()) { return false; }
 	auto cur { file.begin() };
@@ -303,7 +294,8 @@ static inline bool read_patch(File &file) {
 	return next();
 }
 
-#line 254
+#line 156
+#include "solid/require.h"
 
 #line 76
 static inline void run_tests() {
@@ -496,7 +488,7 @@ static inline void run_tests() {
 
 #line 44
 int main(int argc, const char *argv[]) {
-#line 95
+#line 82
 	run_tests();
 #line 1087
 	if (argc >= 2 && argv[1] == std::string { "--raw" }) {
@@ -506,8 +498,6 @@ int main(int argc, const char *argv[]) {
 	if (argc == 2 && argv[1] == std::string { "--run-only-tests" }) {
 		return EXIT_SUCCESS;
 	}
-#line 82
-	run_tests();
 #line 45
 	// parse input
 #line 633
